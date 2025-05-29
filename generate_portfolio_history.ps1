@@ -17,12 +17,9 @@ $messages = @(
 "implement contact form",
 "add footer section",
 "improve animation utilities",
-"add profile image handler",
-"implement scroll animations",
-"add portfolio experience component"
+"implement scroll animations"
 )
 
-# collect valid days
 $dates = @()
 $d = $start
 
@@ -31,7 +28,6 @@ while ($d -le $end) {
     $d = $d.AddDays(1)
 }
 
-# choose 8 random development days
 $activeDays = $dates | Get-Random -Count $targetActiveDays
 $activeDays = $activeDays | Sort-Object
 
