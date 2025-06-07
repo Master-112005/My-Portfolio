@@ -14,3 +14,4 @@ add theme toggle support 1371539215
 add theme toggle support 2127813525
 add skills block ui 585301921
 add hero section layout 1001695299
+add education timeline boxes 1022474701
