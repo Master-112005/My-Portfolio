@@ -16,3 +16,4 @@ add skills block ui 585301921
 add hero section layout 1001695299
 add education timeline boxes 1022474701
 implement animated id card component 381147113
+implement animated id card component 1942248086
