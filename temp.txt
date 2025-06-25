@@ -19,3 +19,4 @@ implement animated id card component 381147113
 implement animated id card component 1942248086
 implement scroll animations 429532761
 add hero section layout 809714329
+initialize portfolio nextjs project 1209079763
