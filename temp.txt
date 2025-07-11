@@ -21,3 +21,4 @@ implement scroll animations 429532761
 add hero section layout 809714329
 initialize portfolio nextjs project 1209079763
 implement scroll animations 1197095127
+add vscode project window 658724362
