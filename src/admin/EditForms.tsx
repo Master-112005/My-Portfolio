@@ -6,16 +6,25 @@ import { useEffect, useState } from "react";
 
 import { useEditMode } from "@/admin/EditMode";
 import { useSiteData } from "@/lib/site-context";
-import type { HeroAction, SkillGroup, SocialLink } from "@/lib/types";
-import { createIdCardImageDataUrl } from "@/utils/profile-image";
+import type { HeroAction, ProjectImage, SkillGroup, SocialLink } from "@/lib/types";
+import { createIdCardImageDataUrl, createProjectImageDataUrl } from "@/utils/profile-image";
 
 type FormState = Record<string, string>;
+const MAX_PROJECT_IMAGES = 6;
+
 type SkillGroupDraft = {
   id: string;
   title: string;
   accent: string;
   marker: string;
   items: string;
+};
+
+type ProjectImageDraft = {
+  id: string;
+  src: string;
+  alt: string;
+  caption: string;
 };
 
 function serializeLinks(links: SocialLink[]) {
@@ -91,6 +100,40 @@ function normalizeSkillGroupDrafts(groups: SkillGroupDraft[]) {
       };
     })
     .filter((group): group is SkillGroup => Boolean(group));
+}
+
+function createProjectImageDraft(image?: ProjectImage, index = 0): ProjectImageDraft {
+  return {
+    id: image?.id ?? `project-image-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    src: image?.src ?? "",
+    alt: image?.alt ?? "",
+    caption: image?.caption ?? "",
+  };
+}
+
+function buildProjectImageDrafts(images: ProjectImage[]) {
+  return images.length ? images.map((image, index) => createProjectImageDraft(image, index)) : [];
+}
+
+function normalizeProjectImageDrafts(images: ProjectImageDraft[], projectName: string) {
+  return images
+    .map((image, index): ProjectImage | null => {
+      const src = image.src.trim();
+
+      if (!src) {
+        return null;
+      }
+
+      const fallbackLabel = `${projectName || "Project"} screenshot ${index + 1}`;
+
+      return {
+        id: image.id,
+        src,
+        alt: image.alt.trim() || fallbackLabel,
+        caption: image.caption.trim(),
+      };
+    })
+    .filter((image): image is ProjectImage => Boolean(image));
 }
 
 function buildFormState(
@@ -225,21 +268,33 @@ export function EditForms() {
   } = useSiteData();
   const [formState, setFormState] = useState<FormState>({});
   const [skillGroupsDraft, setSkillGroupsDraft] = useState<SkillGroupDraft[]>([]);
+  const [projectImagesDraft, setProjectImagesDraft] = useState<ProjectImageDraft[]>([]);
   const [isProcessingProfileImage, setIsProcessingProfileImage] = useState(false);
+  const [isProcessingProjectImages, setIsProcessingProjectImages] = useState(false);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
+  const [projectImageError, setProjectImageError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editor) {
       setFormState({});
       setSkillGroupsDraft([]);
+      setProjectImagesDraft([]);
       setIsProcessingProfileImage(false);
+      setIsProcessingProjectImages(false);
       setProfileImageError(null);
+      setProjectImageError(null);
       return;
     }
 
     setFormState(buildFormState(editor, data));
     setSkillGroupsDraft(editor.section === "profile" ? buildSkillGroupDrafts(data.profile.skillGroups) : []);
+    setProjectImagesDraft(
+      editor.section === "projects"
+        ? buildProjectImageDrafts(data.projects.find((entry) => entry.id === editor.itemId)?.images ?? [])
+        : [],
+    );
     setProfileImageError(null);
+    setProjectImageError(null);
   }, [data, editor]);
 
   if (!editor) {
@@ -274,6 +329,23 @@ export function EditForms() {
     setSkillGroupsDraft((current) => current.filter((group) => group.id !== id));
   };
 
+  const updateProjectImageDraft = (id: string, key: keyof Omit<ProjectImageDraft, "id" | "src">, value: string) => {
+    setProjectImagesDraft((current) =>
+      current.map((image) =>
+        image.id === id
+          ? {
+              ...image,
+              [key]: value,
+            }
+          : image,
+      ),
+    );
+  };
+
+  const deleteProjectImageDraft = (id: string) => {
+    setProjectImagesDraft((current) => current.filter((image) => image.id !== id));
+  };
+
   const handleProfileImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -297,6 +369,55 @@ export function EditForms() {
       setProfileImageError(error instanceof Error ? error.message : "Failed to process the uploaded image.");
     } finally {
       setIsProcessingProfileImage(false);
+    }
+  };
+
+  const handleProjectImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (!files.length) {
+      return;
+    }
+
+    const remainingSlots = Math.max(0, MAX_PROJECT_IMAGES - projectImagesDraft.length);
+
+    if (!remainingSlots) {
+      setProjectImageError(`Only ${MAX_PROJECT_IMAGES} project images can be stored for a single project.`);
+      return;
+    }
+
+    const acceptedFiles = files.slice(0, remainingSlots);
+    const projectName =
+      formState.name?.trim() || data.projects.find((entry) => entry.id === editor.itemId)?.name || "Project";
+
+    setIsProcessingProjectImages(true);
+    setProjectImageError(null);
+
+    try {
+      const processedImages: ProjectImageDraft[] = [];
+
+      for (const [index, file] of acceptedFiles.entries()) {
+        const processedImage = await createProjectImageDataUrl(file);
+        const order = projectImagesDraft.length + index + 1;
+
+        processedImages.push({
+          id: `project-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          src: processedImage,
+          alt: `${projectName} screenshot ${order}`,
+          caption: `${projectName} view ${order}`,
+        });
+      }
+
+      setProjectImagesDraft((current) => [...current, ...processedImages]);
+
+      if (acceptedFiles.length < files.length) {
+        setProjectImageError(`Only the first ${remainingSlots} image(s) were added. Limit: ${MAX_PROJECT_IMAGES} images per project.`);
+      }
+    } catch (error) {
+      setProjectImageError(error instanceof Error ? error.message : "Failed to process the uploaded project image.");
+    } finally {
+      setIsProcessingProjectImages(false);
     }
   };
 
@@ -371,6 +492,7 @@ export function EditForms() {
           status: formState.status.trim(),
           fileTree: parseList(formState.fileTree),
           codeSnippet: formState.codeSnippet,
+          images: normalizeProjectImageDrafts(projectImagesDraft, formState.name.trim() || item.name),
         });
         break;
       }
@@ -778,6 +900,95 @@ export function EditForms() {
                     onChange={(value) => setValue("accent", value)}
                     placeholder="#14b8a6"
                   />
+                  <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                          Project images
+                        </p>
+                        <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
+                          Upload one or more images and the system will crop, resize, and optimize them for the project
+                          overview gallery in the VSCode window.
+                        </p>
+                      </div>
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110">
+                        <span>{isProcessingProjectImages ? "Processing..." : "Upload images"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(event) => void handleProjectImageUpload(event)}
+                          className="sr-only"
+                          disabled={isProcessingProjectImages}
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      {projectImagesDraft.length ? (
+                        projectImagesDraft.map((image, index) => (
+                          <div
+                            key={image.id}
+                            className="grid gap-4 rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4 lg:grid-cols-[12rem_1fr]"
+                          >
+                            <div className="overflow-hidden rounded-[1rem] border border-[color:var(--line)] bg-[#0a101a] aspect-[16/10]">
+                              <img src={image.src} alt={image.alt || `Project image ${index + 1}`} className="h-full w-full object-cover" />
+                            </div>
+
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                    Screenshot {String(index + 1).padStart(2, "0")}
+                                  </p>
+                                  <p className="mt-1 text-sm text-[color:var(--text-soft)]">
+                                    This image appears in the overview gallery below the Explorer panel.
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteProjectImageDraft(image.id)}
+                                  className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
+                                >
+                                  Delete image
+                                </button>
+                              </div>
+
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                <Field
+                                  label="Caption"
+                                  value={image.caption}
+                                  onChange={(value) => updateProjectImageDraft(image.id, "caption", value)}
+                                  placeholder="Overview of the live dashboard"
+                                />
+                                <Field
+                                  label="Alt text"
+                                  value={image.alt}
+                                  onChange={(value) => updateProjectImageDraft(image.id, "alt", value)}
+                                  placeholder="Dashboard screenshot"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
+                          No project images uploaded yet. Add one or more screenshots to populate the overview gallery.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                      {projectImageError ? (
+                        <p className="text-rose-300">{projectImageError}</p>
+                      ) : (
+                        <p>
+                          Up to {MAX_PROJECT_IMAGES} processed images can be stored per project. Each upload is
+                          normalized automatically for a clean gallery layout.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                   <div className="sm:col-span-2">
                     <Field
                       label="Features"
@@ -908,10 +1119,16 @@ export function EditForms() {
               <button
                 type="button"
                 onClick={() => void handleSave()}
-                disabled={isSaving || isProcessingProfileImage}
+                disabled={isSaving || isProcessingProfileImage || isProcessingProjectImages}
                 className="rounded-full bg-[color:var(--accent)] px-5 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-wait disabled:opacity-75"
               >
-                {isProcessingProfileImage ? "Processing image..." : isSaving ? "Saving..." : "Save changes"}
+                {isProcessingProfileImage
+                  ? "Processing image..."
+                  : isProcessingProjectImages
+                    ? "Processing images..."
+                    : isSaving
+                      ? "Saving..."
+                      : "Save changes"}
               </button>
             </div>
           </div>

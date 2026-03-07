@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 import type { ProjectData } from "@/lib/types";
 
@@ -43,6 +44,14 @@ export default function VSCodeWindow({
   onRestore,
   project,
 }: VSCodeWindowProps) {
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [project.id]);
+
+  const clampedImageIndex = Math.min(activeImageIndex, Math.max(0, project.images.length - 1));
+  const activeImage = project.images[clampedImageIndex] ?? null;
   const shellClassName =
     mode === "maximized"
       ? "inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)]"
@@ -95,22 +104,66 @@ export default function VSCodeWindow({
           </button>
         ) : (
           <div className="grid min-h-0 flex-1 md:grid-cols-[16rem_1fr]">
-            <aside className="min-h-0 border-r border-slate-700/60 bg-[#111827] px-4 py-4">
-              <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Explorer</p>
-              <div className="space-y-2 overflow-y-auto pr-1">
-                {project.fileTree.map((file) => {
-                  const depth = file.split("/").length - 1;
+            <aside className="flex min-h-0 flex-col border-r border-slate-700/60 bg-[#111827] px-4 py-4">
+              <div className="min-h-0 flex-1">
+                <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Explorer</p>
+                <div className="space-y-2 overflow-y-auto pr-1">
+                  {project.fileTree.map((file) => {
+                    const depth = file.split("/").length - 1;
 
-                  return (
-                    <div
-                      key={file}
-                      className="rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5"
-                      style={{ paddingLeft: `${0.75 + depth * 0.7}rem` }}
-                    >
-                      {file.split("/").at(-1)}
-                    </div>
-                  );
-                })}
+                    return (
+                      <div
+                        key={file}
+                        className="rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5"
+                        style={{ paddingLeft: `${0.75 + depth * 0.7}rem` }}
+                      >
+                        {file.split("/").at(-1)}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-slate-700/60 pt-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Overview</p>
+
+                {project.images.length ? (
+                  <div className="mt-4 max-h-[17rem] space-y-3 overflow-y-auto pr-1">
+                    {project.images.map((image, index) => (
+                      <button
+                        key={image.id}
+                        type="button"
+                        onClick={() => setActiveImageIndex(index)}
+                        className={`w-full overflow-hidden rounded-[1.1rem] border text-left transition ${
+                          clampedImageIndex === index
+                            ? "border-cyan-300/60 bg-cyan-300/8"
+                            : "border-slate-700/70 bg-white/5 hover:bg-white/8"
+                        }`}
+                      >
+                        <div className="aspect-[16/10] overflow-hidden bg-[#0a101a]">
+                          <img
+                            src={image.src}
+                            alt={image.alt}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="px-3 py-3">
+                          <p className="line-clamp-1 text-sm font-medium text-slate-100">
+                            {image.caption || `Project view ${index + 1}`}
+                          </p>
+                          <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                            Screenshot {String(index + 1).padStart(2, "0")}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-[1.15rem] border border-dashed border-slate-700/70 bg-white/5 px-4 py-4 text-sm leading-6 text-slate-400">
+                    Upload one or more project images in edit mode to populate this overview gallery.
+                  </div>
+                )}
               </div>
             </aside>
 
@@ -140,6 +193,27 @@ export default function VSCodeWindow({
                     <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">{project.name}</h3>
                     <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">{project.description}</p>
                   </div>
+
+                  {activeImage ? (
+                    <div className="overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#0a101a]">
+                      <div className="aspect-[16/10] overflow-hidden">
+                        <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-slate-100">
+                            {activeImage.caption || activeImage.alt}
+                          </p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">
+                            Project overview image
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                          {clampedImageIndex + 1} / {project.images.length}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div>
                     <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Key features</p>

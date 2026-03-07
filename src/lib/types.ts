@@ -56,6 +56,13 @@ export type EducationItem = {
   accent: string;
 };
 
+export type ProjectImage = {
+  id: string;
+  src: string;
+  alt: string;
+  caption: string;
+};
+
 export type ProjectData = {
   id: string;
   order: number;
@@ -71,6 +78,7 @@ export type ProjectData = {
   status: string;
   fileTree: string[];
   codeSnippet: string;
+  images: ProjectImage[];
 };
 
 export type ContactData = {

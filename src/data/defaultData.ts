@@ -182,6 +182,7 @@ const projects: ProjectData[] = [
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 3);
 }`,
+    images: [],
   },
   {
     id: "atlas-commerce",
@@ -214,6 +215,7 @@ const projects: ProjectData[] = [
   label: product.name,
   mood: product.collection,
 }));`,
+    images: [],
   },
   {
     id: "story-engine",
@@ -245,6 +247,7 @@ const projects: ProjectData[] = [
   whileInView: { opacity: 1, y: 0 },
   transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
 };`,
+    images: [],
   },
   {
     id: "ops-lens",
@@ -275,6 +278,7 @@ const projects: ProjectData[] = [
     codeSnippet: `export function formatIncidentTitle(code: string, service: string) {
   return [code.toUpperCase(), service].join(" / ");
 }`,
+    images: [],
   },
 ];
 

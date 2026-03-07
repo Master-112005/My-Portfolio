@@ -71,6 +71,7 @@ function createProjectItem(order: number): ProjectData {
     status: "In progress",
     fileTree: ["app/page.tsx"],
     codeSnippet: "export const status = 'draft';",
+    images: [],
   };
 }
 
