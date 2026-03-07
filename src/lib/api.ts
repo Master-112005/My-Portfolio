@@ -3,169 +3,67 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
-  orderBy,
-  query,
   serverTimestamp,
-  writeBatch,
+  setDoc,
 } from "firebase/firestore";
 
 import { createPortfolioDataClone, mergePortfolioData } from "@/data/defaultData";
-import { firestore } from "@/lib/firebase";
+import { firestore, hasFirebaseConfig } from "@/lib/firebase";
 import type { ContactMessageInput, PortfolioData } from "@/lib/types";
 
-const STORAGE_KEY = "interactive-storytelling-portfolio";
-const MESSAGE_STORAGE_KEY = "interactive-storytelling-portfolio:messages";
+const PORTFOLIO_COLLECTION = "portfolio";
+const PORTFOLIO_DOCUMENT_ID = "data";
 
-function readLocalData() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return mergePortfolioData(JSON.parse(raw) as PortfolioData);
-  } catch {
-    return null;
-  }
-}
-
-function writeLocalData(data: PortfolioData) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function writeLocalMessage(message: ContactMessageInput) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const raw = window.localStorage.getItem(MESSAGE_STORAGE_KEY);
-  const current = raw ? (JSON.parse(raw) as ContactMessageInput[]) : [];
-  current.push(message);
-  window.localStorage.setItem(MESSAGE_STORAGE_KEY, JSON.stringify(current));
+function createFirestoreConfigurationError() {
+  return new Error(
+    "Firebase Firestore is not configured. Add the required NEXT_PUBLIC_FIREBASE_* environment variables.",
+  );
 }
 
 export async function loadPortfolioData() {
-  const localSnapshot = readLocalData();
   const db = firestore;
 
-  if (!db) {
-    return localSnapshot ?? createPortfolioDataClone();
+  if (!db || !hasFirebaseConfig) {
+    return createPortfolioDataClone();
   }
 
   try {
-    const [profileSnap, contactSnap, educationSnap, projectsSnap] = await Promise.all([
-      getDoc(doc(db, "profile", "site")),
-      getDoc(doc(db, "contact", "site")),
-      getDocs(query(collection(db, "education"), orderBy("order", "asc"))),
-      getDocs(query(collection(db, "projects"), orderBy("order", "asc"))),
-    ]);
+    const snapshot = await getDoc(doc(db, PORTFOLIO_COLLECTION, PORTFOLIO_DOCUMENT_ID));
 
-    if (!profileSnap.exists() || !contactSnap.exists()) {
-      const seeded = localSnapshot ?? createPortfolioDataClone();
-      await savePortfolioData(seeded);
-      return seeded;
+    if (!snapshot.exists()) {
+      const seededData = createPortfolioDataClone();
+      await savePortfolioData(seededData);
+      return seededData;
     }
 
-    const rawProfile = profileSnap.data() as PortfolioData["profile"] & {
-      footer?: PortfolioData["footer"];
-    };
-    const { footer, ...profile } = rawProfile;
-
-    const merged = mergePortfolioData({
-      profile,
-      footer,
-      contact: contactSnap.data() as PortfolioData["contact"],
-      education: educationSnap.docs.map((item) => item.data() as PortfolioData["education"][number]),
-      projects: projectsSnap.docs.map((item) => item.data() as PortfolioData["projects"][number]),
-    });
-
-    writeLocalData(merged);
-    return merged;
+    return mergePortfolioData(snapshot.data() as Partial<PortfolioData>);
   } catch {
-    return localSnapshot ?? createPortfolioDataClone();
+    return createPortfolioDataClone();
   }
 }
 
 export async function savePortfolioData(data: PortfolioData) {
-  writeLocalData(data);
   const db = firestore;
 
-  if (!db) {
-    return data;
+  if (!db || !hasFirebaseConfig) {
+    throw createFirestoreConfigurationError();
   }
 
-  const [existingEducationSnapshot, existingProjectsSnapshot] = await Promise.all([
-    getDocs(collection(db, "education")),
-    getDocs(collection(db, "projects")),
-  ]);
-  const batch = writeBatch(db);
-  const educationIds = new Set(data.education.map((item) => item.id));
-  const projectIds = new Set(data.projects.map((item) => item.id));
-
-  batch.set(
-    doc(db, "profile", "site"),
-    {
-      ...data.profile,
-      footer: data.footer,
-    },
-    { merge: true },
-  );
-  batch.set(doc(db, "contact", "site"), data.contact, { merge: true });
-
-  existingEducationSnapshot.forEach((snapshot) => {
-    if (!educationIds.has(snapshot.id)) {
-      batch.delete(snapshot.ref);
-    }
+  await setDoc(doc(db, PORTFOLIO_COLLECTION, PORTFOLIO_DOCUMENT_ID), data, {
+    merge: false,
   });
 
-  data.education.forEach((item, index) => {
-    batch.set(
-      doc(db, "education", item.id),
-      {
-        ...item,
-        order: index,
-      },
-      { merge: true },
-    );
-  });
-
-  existingProjectsSnapshot.forEach((snapshot) => {
-    if (!projectIds.has(snapshot.id)) {
-      batch.delete(snapshot.ref);
-    }
-  });
-
-  data.projects.forEach((item, index) => {
-    batch.set(
-      doc(db, "projects", item.id),
-      {
-        ...item,
-        order: index,
-      },
-      { merge: true },
-    );
-  });
-
-  await batch.commit();
   return data;
 }
 
+export const loadPortfolio = loadPortfolioData;
+export const savePortfolio = savePortfolioData;
+
 export async function submitContactMessage(message: ContactMessageInput) {
-  writeLocalMessage(message);
   const db = firestore;
 
-  if (!db) {
-    return;
+  if (!db || !hasFirebaseConfig) {
+    throw createFirestoreConfigurationError();
   }
 
   await addDoc(collection(db, "contact_messages"), {

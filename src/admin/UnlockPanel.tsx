@@ -4,11 +4,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
 import { useEditMode } from "@/admin/EditMode";
+import { deleteCookie, readCookie, writeCookie } from "@/utils/cookies";
 
 const DEFAULT_ADMIN_HASH = "ed2d4c4cfbe3a7d41aa1fbc0e93df82f4fbc1c82faec35a95a2907d956d5795e";
 const ADMIN_PASSWORD_HASH =
   process.env.NEXT_PUBLIC_ADMIN_PASSWORD_HASH ?? DEFAULT_ADMIN_HASH;
-const LOCKOUT_STORAGE_KEY = "interactive-storytelling-portfolio:unlock-attempts";
+const LOCKOUT_COOKIE_KEY = "interactive-storytelling-portfolio-unlock-attempts";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_WINDOW_MS = 5 * 60 * 1000;
 
@@ -26,14 +27,7 @@ type UnlockAttemptState = {
 };
 
 function readUnlockAttemptState(): UnlockAttemptState {
-  if (typeof window === "undefined") {
-    return {
-      failedAttempts: 0,
-      lockedUntil: 0,
-    };
-  }
-
-  const rawValue = window.localStorage.getItem(LOCKOUT_STORAGE_KEY);
+  const rawValue = readCookie(LOCKOUT_COOKIE_KEY);
 
   if (!rawValue) {
     return {
@@ -57,11 +51,17 @@ function readUnlockAttemptState(): UnlockAttemptState {
 }
 
 function persistUnlockAttemptState(state: UnlockAttemptState) {
-  if (typeof window === "undefined") {
+  if (state.failedAttempts === 0 && state.lockedUntil === 0) {
+    deleteCookie(LOCKOUT_COOKIE_KEY);
     return;
   }
 
-  window.localStorage.setItem(LOCKOUT_STORAGE_KEY, JSON.stringify(state));
+  const remainingLockoutSeconds =
+    state.lockedUntil > Date.now() ? Math.ceil((state.lockedUntil - Date.now()) / 1000) : 0;
+
+  writeCookie(LOCKOUT_COOKIE_KEY, JSON.stringify(state), {
+    maxAgeSeconds: Math.max(remainingLockoutSeconds, LOCKOUT_WINDOW_MS / 1000),
+  });
 }
 
 export function UnlockPanel() {

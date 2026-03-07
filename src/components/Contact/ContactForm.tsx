@@ -60,6 +60,8 @@ export default function ContactForm() {
       });
       setFormState(initialFormState);
       setIsSuccess(true);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Failed to send message.");
     } finally {
       setIsSending(false);
     }

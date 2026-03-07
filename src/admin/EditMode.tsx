@@ -3,6 +3,7 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useState } from "react";
 
 import type { EditableSection, EditorState } from "@/lib/types";
+import { deleteCookie, readCookie, writeCookie } from "@/utils/cookies";
 
 type EditModeContextValue = {
   isEditMode: boolean;
@@ -16,7 +17,7 @@ type EditModeContextValue = {
   closeEditor: () => void;
 };
 
-const EDIT_MODE_SESSION_KEY = "interactive-storytelling-portfolio:edit-mode";
+const EDIT_MODE_COOKIE_KEY = "interactive-storytelling-portfolio-edit-mode";
 
 const EditModeContext = createContext<EditModeContextValue | null>(null);
 
@@ -26,29 +27,19 @@ export function EditModeProvider({ children }: PropsWithChildren) {
   const [editor, setEditor] = useState<EditorState>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setIsEditMode(window.sessionStorage.getItem(EDIT_MODE_SESSION_KEY) === "enabled");
+    setIsEditMode(readCookie(EDIT_MODE_COOKIE_KEY) === "enabled");
   }, []);
 
   const enableEditMode = () => {
     setIsEditMode(true);
     setIsUnlockOpen(false);
-
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(EDIT_MODE_SESSION_KEY, "enabled");
-    }
+    writeCookie(EDIT_MODE_COOKIE_KEY, "enabled");
   };
 
   const disableEditMode = () => {
     setIsEditMode(false);
     setEditor(null);
-
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(EDIT_MODE_SESSION_KEY);
-    }
+    deleteCookie(EDIT_MODE_COOKIE_KEY);
   };
 
   return (
