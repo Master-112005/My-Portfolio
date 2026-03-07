@@ -1,0 +1,47 @@
+"use client";
+
+import Link from "next/link";
+
+import { EditButton } from "@/admin/EditMode";
+import { useSiteData } from "@/lib/site-context";
+
+export default function Footer() {
+  const { data } = useSiteData();
+  const { footer } = data;
+
+  return (
+    <footer className="section-shell">
+      <div className="panel-surface-strong rounded-[2rem] px-5 py-8 sm:px-8 sm:py-10">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="eyebrow">Footer</span>
+              <EditButton section="footer" label="Edit footer" />
+            </div>
+            <blockquote className="max-w-2xl text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text)]">
+              "{footer.quote}"
+            </blockquote>
+            <p className="max-w-2xl text-sm leading-7 text-[color:var(--text-soft)]">{footer.note}</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-3">
+              {footer.links.map((link) => (
+                <Link
+                  key={`${link.label}-${link.href}`}
+                  href={link.href}
+                  className="rounded-full border border-[color:var(--line)] px-4 py-2 text-sm text-[color:var(--text-soft)] transition hover:border-[color:var(--accent)] hover:text-[color:var(--text)]"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+            <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+              {footer.copyrightLabel}
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}

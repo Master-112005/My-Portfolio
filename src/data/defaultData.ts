@@ -1,0 +1,383 @@
+import type {
+  ContactData,
+  EducationItem,
+  FooterData,
+  PortfolioData,
+  ProfileData,
+  ProjectData,
+} from "@/lib/types";
+
+const profile: ProfileData = {
+  name: "Rakesh Kumar",
+  role: "Full-Stack Developer",
+  tagline: "I build interfaces that feel alive, systems that stay calm, and products people remember.",
+  intro:
+    "This portfolio is a guided walk through the way I learn, design, and ship. Every section is meant to feel like an artifact from the journey, not a static resume panel.",
+  location: "India / Remote-friendly",
+  availability: "Open to product engineering and creative frontend roles",
+  avatarLabel: "RK",
+  profileImageAlt: "Portrait of Rakesh Kumar",
+  profileImageSrc: "/images/profile.jpg",
+  idCard: {
+    serialNumber: "31522",
+    primaryName: "Rakesh",
+    secondaryName: "Kumar",
+    frontRoleLines: ["Full Stack", "Web Dev", "UI / UX"],
+    backTitle: "Owner links",
+    backDescription: "Hover for sway, move the pointer for tilt, and pull the badge down to unlock owner controls.",
+    backFooter: "Release to let the badge settle back into place.",
+  },
+  skillGroups: [
+    {
+      title: "Languages",
+      accent: "#67e8f9",
+      marker: "LG",
+      items: ["TypeScript", "JavaScript", "Python", "Java", "SQL", "HTML/CSS", "C++"],
+    },
+    {
+      title: "Technologies",
+      accent: "#14b8a6",
+      marker: "TK",
+      items: ["Firebase", "Azure DevOps", "Docker", "Git", "TailwindCSS", "Framer Motion", "Figma"],
+    },
+    {
+      title: "Frameworks",
+      accent: "#fb7185",
+      marker: "FW",
+      items: ["Next.js", "React", "Spring Boot", "Microservices", "Django", "Flutter"],
+    },
+    {
+      title: "Core",
+      accent: "#f97316",
+      marker: "CR",
+      items: ["Web Development", "Cloud Infrastructure", "DevOps", "Communication", "Analytical Thinking"],
+    },
+    {
+      title: "Misc",
+      accent: "#8b5cf6",
+      marker: "ET",
+      items: ["Digital Content Creation", "Canva", "Storytelling", "Rapid Prototyping"],
+    },
+  ],
+  heroActions: [
+    {
+      label: "Walk the timeline",
+      href: "#timeline",
+      variant: "primary",
+    },
+    {
+      label: "Open projects",
+      href: "#projects",
+      variant: "secondary",
+    },
+  ],
+  socialLinks: [
+    {
+      label: "GitHub",
+      href: "https://github.com/",
+      handle: "@rakesh",
+    },
+    {
+      label: "LinkedIn",
+      href: "https://www.linkedin.com/",
+      handle: "/in/rakesh",
+    },
+    {
+      label: "Email",
+      href: "mailto:rakesh@example.com",
+      handle: "rakesh@example.com",
+    },
+  ],
+};
+
+const education: EducationItem[] = [
+  {
+    id: "primary-school",
+    order: 0,
+    title: "Primary School",
+    period: "2008 - 2013",
+    institution: "Foundation Public School",
+    summary: "Curiosity started with sketchbooks, dismantled toys, and an obsession with how things worked.",
+    details: [
+      "Built early comfort with drawing, basic logic, and presenting small ideas in front of class.",
+      "Learned to treat mistakes as part of the process instead of as a failure state.",
+      "Started noticing that design and problem solving were connected, even before software entered the picture.",
+    ],
+    accent: "#f97316",
+  },
+  {
+    id: "high-school",
+    order: 1,
+    title: "High School",
+    period: "2014 - 2018",
+    institution: "Scholars High School",
+    summary: "Technical curiosity became structured discipline through science, mathematics, and early computing.",
+    details: [
+      "Moved from generic computer classes into purposeful programming practice.",
+      "Developed a bias for clean work, repeatable systems, and measurable improvement.",
+      "Started building small websites and experimenting with visual presentation on the web.",
+    ],
+    accent: "#14b8a6",
+  },
+  {
+    id: "intermediate",
+    order: 2,
+    title: "Intermediate",
+    period: "2018 - 2020",
+    institution: "Narayana Junior College",
+    summary: "The pace accelerated: deeper technical study, tighter schedules, and a sharper focus on engineering.",
+    details: [
+      "Learned to manage high-intensity workloads without losing attention to detail.",
+      "Strengthened problem solving through structured reasoning and deliberate practice.",
+      "Began connecting abstract theory with the practical systems used in modern software.",
+    ],
+    accent: "#8b5cf6",
+  },
+  {
+    id: "btech",
+    order: 3,
+    title: "B.Tech",
+    period: "2020 - 2024",
+    institution: "Institute of Engineering and Technology",
+    summary: "Converted curiosity into product thinking through software projects, interface craft, and systems design.",
+    details: [
+      "Built production-oriented projects with React, TypeScript, Firebase, and cloud tooling.",
+      "Focused on architecture, user experience, and maintainable frontends rather than only feature delivery.",
+      "Became interested in immersive interfaces where engineering quality and storytelling reinforce each other.",
+    ],
+    accent: "#3b82f6",
+  },
+];
+
+const projects: ProjectData[] = [
+  {
+    id: "signal-desk",
+    order: 0,
+    name: "Signal Desk",
+    tagline: "A real-time analytics cockpit for fast-moving product teams.",
+    description:
+      "Signal Desk turns fragmented metrics into a narrative dashboard with live activity streams, role-based views, and alert-driven decision making.",
+    stack: ["Next.js", "TypeScript", "TailwindCSS", "Firebase"],
+    features: [
+      "Live KPI board with adaptive layout states",
+      "Role-aware access for operations, design, and product",
+      "Insight cards that translate raw metrics into clear actions",
+    ],
+    repoHref: "https://github.com/",
+    liveHref: "https://vercel.com/",
+    icon: "SD",
+    accent: "#0f766e",
+    status: "Live concept build",
+    fileTree: [
+      "app/page.tsx",
+      "components/kpi-board.tsx",
+      "components/live-feed.tsx",
+      "lib/metrics.ts",
+      "lib/alerts.ts",
+      "styles/dashboard.css",
+    ],
+    codeSnippet: `export function summarizeMetrics(metrics: Metric[]) {
+  return metrics
+    .filter((metric) => metric.status !== "idle")
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 3);
+}`,
+  },
+  {
+    id: "atlas-commerce",
+    order: 1,
+    name: "Atlas Commerce",
+    tagline: "A visually rich storefront focused on product discovery and conversion.",
+    description:
+      "Atlas Commerce explores how editorial storytelling can make a product catalog feel curated instead of transactional.",
+    stack: ["Next.js", "Framer Motion", "Stripe", "CMS"],
+    features: [
+      "Editorial landing flows with motion-led browsing",
+      "Responsive product narratives instead of grid-only browsing",
+      "Checkout handoff tuned for speed and clarity",
+    ],
+    repoHref: "https://github.com/",
+    liveHref: "https://vercel.com/",
+    icon: "AC",
+    accent: "#b45309",
+    status: "Case study",
+    fileTree: [
+      "app/(shop)/layout.tsx",
+      "components/product-hero.tsx",
+      "components/story-strip.tsx",
+      "lib/cart-store.ts",
+      "lib/checkout.ts",
+      "styles/catalog.css",
+    ],
+    codeSnippet: `const sections = products.map((product) => ({
+  slug: product.slug,
+  label: product.name,
+  mood: product.collection,
+}));`,
+  },
+  {
+    id: "story-engine",
+    order: 2,
+    name: "Story Engine",
+    tagline: "A modular interface kit for immersive portfolio and campaign experiences.",
+    description:
+      "Story Engine packages layout primitives, motion systems, and editorial components into a reusable toolkit for interactive storytelling sites.",
+    stack: ["React", "TypeScript", "Framer Motion", "Three.js"],
+    features: [
+      "Reusable chapter transitions and scroll choreography",
+      "Theme-aware art direction with a single data model",
+      "Composable storytelling blocks for landing pages and portfolios",
+    ],
+    repoHref: "https://github.com/",
+    liveHref: "https://vercel.com/",
+    icon: "SE",
+    accent: "#7c3aed",
+    status: "Framework experiment",
+    fileTree: [
+      "packages/motion/presets.ts",
+      "packages/layout/chapter-shell.tsx",
+      "packages/media/scene-layer.tsx",
+      "packages/theme/tokens.ts",
+      "examples/portfolio/page.tsx",
+    ],
+    codeSnippet: `export const chapterTransition = {
+  initial: { opacity: 0, y: 28 },
+  whileInView: { opacity: 1, y: 0 },
+  transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+};`,
+  },
+  {
+    id: "ops-lens",
+    order: 3,
+    name: "Ops Lens",
+    tagline: "A troubleshooting surface for distributed systems and support teams.",
+    description:
+      "Ops Lens combines issue timelines, health summaries, and incident notes in a workspace designed for calm, fast diagnosis.",
+    stack: ["Next.js", "Firebase", "Charts", "TypeScript"],
+    features: [
+      "Incident board with health snapshots and escalation markers",
+      "Searchable timeline of events for support investigations",
+      "Structured notes for handoff during production response",
+    ],
+    repoHref: "https://github.com/",
+    liveHref: "https://vercel.com/",
+    icon: "OL",
+    accent: "#1d4ed8",
+    status: "Internal tools concept",
+    fileTree: [
+      "app/incidents/page.tsx",
+      "components/incident-list.tsx",
+      "components/health-panels.tsx",
+      "lib/logging.ts",
+      "lib/status.ts",
+      "styles/ops-lens.css",
+    ],
+    codeSnippet: `export function formatIncidentTitle(code: string, service: string) {
+  return [code.toUpperCase(), service].join(" / ");
+}`,
+  },
+];
+
+const contact: ContactData = {
+  headline: "Let us build something with texture, motion, and strong engineering underneath.",
+  email: "rakesh@example.com",
+  phone: "+91 98765 43210",
+  location: "Hyderabad, India",
+  responseTime: "Usually within 24 hours",
+  availability: "Available for full-time, freelance, and selective collaborations",
+  socialLinks: [
+    {
+      label: "GitHub",
+      href: "https://github.com/",
+      handle: "@rakesh",
+    },
+    {
+      label: "LinkedIn",
+      href: "https://www.linkedin.com/",
+      handle: "/in/rakesh",
+    },
+    {
+      label: "Portfolio Mail",
+      href: "mailto:rakesh@example.com",
+      handle: "Direct inbox",
+    },
+  ],
+};
+
+const footer: FooterData = {
+  note: "Designed as an interactive narrative instead of a flat portfolio.",
+  quote: "Good software should feel engineered and directed.",
+  copyrightLabel: "2026 Rakesh Kumar",
+  links: [
+    {
+      label: "GitHub",
+      href: "https://github.com/",
+      handle: "@rakesh",
+    },
+    {
+      label: "LinkedIn",
+      href: "https://www.linkedin.com/",
+      handle: "/in/rakesh",
+    },
+    {
+      label: "Email",
+      href: "mailto:rakesh@example.com",
+      handle: "rakesh@example.com",
+    },
+  ],
+};
+
+export const defaultPortfolioData: PortfolioData = {
+  profile,
+  education,
+  projects,
+  contact,
+  footer,
+};
+
+export function createPortfolioDataClone(): PortfolioData {
+  return JSON.parse(JSON.stringify(defaultPortfolioData)) as PortfolioData;
+}
+
+export function mergePortfolioData(partial?: Partial<PortfolioData>): PortfolioData {
+  const base = createPortfolioDataClone();
+
+  if (!partial) {
+    return base;
+  }
+
+  return {
+    profile: {
+      ...base.profile,
+      ...partial.profile,
+      idCard: {
+        ...base.profile.idCard,
+        ...partial.profile?.idCard,
+        frontRoleLines: partial.profile?.idCard?.frontRoleLines ?? base.profile.idCard.frontRoleLines,
+      },
+      skillGroups: partial.profile?.skillGroups ?? base.profile.skillGroups,
+      heroActions: partial.profile?.heroActions ?? base.profile.heroActions,
+      socialLinks: partial.profile?.socialLinks ?? base.profile.socialLinks,
+    },
+    education: (partial.education ?? base.education).map((item, index) => ({
+      ...base.education[index % base.education.length],
+      ...item,
+      order: item.order ?? index,
+    })),
+    projects: (partial.projects ?? base.projects).map((item, index) => ({
+      ...base.projects[index % base.projects.length],
+      ...item,
+      order: item.order ?? index,
+    })),
+    contact: {
+      ...base.contact,
+      ...partial.contact,
+      socialLinks: partial.contact?.socialLinks ?? base.contact.socialLinks,
+    },
+    footer: {
+      ...base.footer,
+      ...partial.footer,
+      links: partial.footer?.links ?? base.footer.links,
+    },
+  };
+}

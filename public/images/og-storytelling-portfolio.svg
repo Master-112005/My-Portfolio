@@ -1,0 +1,31 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" rx="32" fill="#08111C"/>
+  <rect width="1200" height="630" rx="32" fill="url(#paint0_radial)"/>
+  <rect x="54" y="54" width="1092" height="522" rx="32" fill="rgba(8,17,28,0.66)" stroke="rgba(255,255,255,0.12)"/>
+  <circle cx="170" cy="156" r="110" fill="#14B8A6" fill-opacity="0.14"/>
+  <circle cx="1035" cy="458" r="132" fill="#F97316" fill-opacity="0.14"/>
+  <rect x="104" y="116" width="412" height="318" rx="30" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)"/>
+  <rect x="144" y="168" width="156" height="196" rx="28" fill="url(#paint1_linear)" stroke="rgba(255,255,255,0.16)"/>
+  <circle cx="222" cy="220" r="28" fill="#F8FAFC"/>
+  <rect x="186" y="266" width="72" height="10" rx="5" fill="#F8FAFC" fill-opacity="0.72"/>
+  <rect x="172" y="290" width="100" height="10" rx="5" fill="#94A3B8"/>
+  <rect x="626" y="124" width="460" height="72" rx="18" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)"/>
+  <rect x="626" y="222" width="208" height="94" rx="20" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)"/>
+  <rect x="878" y="222" width="208" height="94" rx="20" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)"/>
+  <rect x="626" y="344" width="460" height="156" rx="24" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)"/>
+  <text x="626" y="284" fill="#E2E8F0" font-family="Arial, sans-serif" font-size="58" font-weight="700">Interactive</text>
+  <text x="626" y="350" fill="#67E8F9" font-family="Arial, sans-serif" font-size="58" font-weight="700">Storytelling Portfolio</text>
+  <text x="626" y="414" fill="#94A3B8" font-family="Arial, sans-serif" font-size="28">3D journey timeline / desktop project viewer / inline CMS</text>
+  <text x="626" y="484" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="22">Next.js  /  Framer Motion  /  React Three Fiber  /  Firebase</text>
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(104 82) rotate(32.1781) scale(1312.79 737.395)">
+      <stop stop-color="#14B8A6" stop-opacity="0.12"/>
+      <stop offset="0.48" stop-color="#08111C" stop-opacity="0"/>
+      <stop offset="1" stop-color="#08111C"/>
+    </radialGradient>
+    <linearGradient id="paint1_linear" x1="144" y1="168" x2="300" y2="364" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67E8F9"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+</svg>

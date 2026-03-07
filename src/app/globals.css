@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6efe5;
+  --bg-elevated: rgba(255, 252, 247, 0.72);
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --text: #111827;
+  --text-soft: #4b5563;
+  --line: rgba(17, 24, 39, 0.12);
+  --accent: #0f766e;
+  --accent-soft: rgba(15, 118, 110, 0.14);
+  --accent-secondary: #f97316;
+  --shadow: 0 30px 80px rgba(17, 24, 39, 0.12);
+}
+
+[data-theme="dark"] {
+  --bg: #09111d;
+  --bg-elevated: rgba(9, 17, 29, 0.76);
+  --surface: rgba(15, 23, 42, 0.72);
+  --surface-strong: rgba(15, 23, 42, 0.9);
+  --text: #edf2f7;
+  --text-soft: #94a3b8;
+  --line: rgba(148, 163, 184, 0.16);
+  --accent: #67e8f9;
+  --accent-soft: rgba(103, 232, 249, 0.14);
+  --accent-secondary: #fb7185;
+  --shadow: 0 36px 100px rgba(2, 6, 23, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.18), transparent 22%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 24%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: color-mix(in srgb, var(--accent) 36%, transparent);
+  background-clip: padding-box;
+}
+
+.section-shell {
+  position: relative;
+  width: min(1200px, calc(100vw - 2rem));
+  margin-inline: auto;
+}
+
+.panel-surface {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.panel-surface-strong {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px);
+}
+
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.text-gradient {
+  background: linear-gradient(120deg, var(--text), color-mix(in srgb, var(--accent) 74%, white));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ambient-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent);
+  pointer-events: none;
+}
+
+.noise-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image:
+    radial-gradient(circle at 20% 20%, currentColor 0 0.8px, transparent 1px),
+    radial-gradient(circle at 70% 40%, currentColor 0 1px, transparent 1px),
+    radial-gradient(circle at 40% 80%, currentColor 0 0.9px, transparent 1px);
+  background-size: 180px 180px;
+  pointer-events: none;
+}
+
+.edit-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.55rem 0.9rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.78rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-strong) 84%, transparent);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.edit-button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+  background: color-mix(in srgb, var(--accent-soft) 60%, var(--surface-strong));
+}
+
+.input-surface {
+  width: 100%;
+  border-radius: 1.2rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-strong) 82%, transparent);
+  color: var(--text);
+  padding: 0.95rem 1rem;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.input-surface:focus {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-soft) 80%, transparent);
+  transform: translateY(-1px);
+}
+
+.section-title {
+  font-size: clamp(2rem, 4vw, 4.25rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.section-copy {
+  color: var(--text-soft);
+  line-height: 1.75;
+}
