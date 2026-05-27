@@ -1,12 +1,105 @@
 import type {
+  CertificationItem,
   ContactData,
   EducationItem,
   FooterData,
   PortfolioData,
   ProfileData,
+  ProjectsSectionData,
+  SkillGroup,
+  SkillItem,
+  SkillLevel,
   ProjectData,
   TimelineSectionData,
 } from "@/lib/types";
+
+function normalizeSkillLevel(value: unknown): SkillLevel {
+  return value === "advanced" || value === "good" || value === "better" || value === "linear"
+    ? value
+    : "good";
+}
+
+function normalizeSkillItems(items: unknown): SkillItem[] {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item): SkillItem | null => {
+      if (typeof item === "string") {
+        const name = item.trim();
+
+        return name ? { name, level: "good" } : null;
+      }
+
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const name = "name" in item && typeof item.name === "string" ? item.name.trim() : "";
+
+      if (!name) {
+        return null;
+      }
+
+      return {
+        name,
+        level: normalizeSkillLevel("level" in item ? item.level : undefined),
+      };
+    })
+    .filter((item): item is SkillItem => Boolean(item));
+}
+
+function normalizeSkillGroups(groups: unknown, fallback: SkillGroup[]): SkillGroup[] {
+  if (!Array.isArray(groups)) {
+    return fallback;
+  }
+
+  return groups
+    .map((group): SkillGroup | null => {
+      if (!group || typeof group !== "object") {
+        return null;
+      }
+
+      return {
+        title: "title" in group && typeof group.title === "string" ? group.title : "",
+        accent: "accent" in group && typeof group.accent === "string" ? group.accent : "",
+        marker: "marker" in group && typeof group.marker === "string" ? group.marker : "",
+        items: normalizeSkillItems("items" in group ? group.items : []),
+      };
+    })
+    .filter((group): group is SkillGroup => Boolean(group));
+}
+
+function normalizeCertifications(items: unknown, fallback: CertificationItem[]): CertificationItem[] {
+  if (!Array.isArray(items)) {
+    return fallback;
+  }
+
+  return items
+    .map((item, index): CertificationItem | null => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      return {
+        id:
+          "id" in item && typeof item.id === "string" && item.id.trim()
+            ? item.id
+            : `certification-${index + 1}`,
+        order: "order" in item && typeof item.order === "number" ? item.order : index,
+        title: "title" in item && typeof item.title === "string" ? item.title : "",
+        issuer: "issuer" in item && typeof item.issuer === "string" ? item.issuer : "",
+        issued: "issued" in item && typeof item.issued === "string" ? item.issued : "",
+        credentialId:
+          "credentialId" in item && typeof item.credentialId === "string" ? item.credentialId : "",
+        href: "href" in item && typeof item.href === "string" ? item.href : "",
+        accent: "accent" in item && typeof item.accent === "string" ? item.accent : "",
+        badge: "badge" in item && typeof item.badge === "string" ? item.badge : "",
+      };
+    })
+    .filter((item): item is CertificationItem => Boolean(item));
+}
 
 const profile: ProfileData = {
   name: "Rakesh Kumar",
@@ -28,36 +121,115 @@ const profile: ProfileData = {
     backDescription: "Hover for sway, move the pointer for tilt, and pull the badge down to unlock owner controls.",
     backFooter: "Release to let the badge settle back into place.",
   },
+  skillsSection: {
+    eyebrow: "Skills block",
+    title: "Skills",
+    description: "A quick view of the languages, tools, frameworks, and working strengths behind the portfolio.",
+  },
   skillGroups: [
     {
       title: "Languages",
       accent: "#67e8f9",
       marker: "LG",
-      items: ["TypeScript", "JavaScript", "Python", "Java", "SQL", "HTML/CSS", "C++"],
+      items: [
+        { name: "TypeScript", level: "advanced" },
+        { name: "JavaScript", level: "advanced" },
+        { name: "Python", level: "good" },
+        { name: "Java", level: "good" },
+        { name: "SQL", level: "good" },
+        { name: "HTML/CSS", level: "advanced" },
+        { name: "C++", level: "better" },
+      ],
     },
     {
       title: "Technologies",
       accent: "#14b8a6",
       marker: "TK",
-      items: ["Firebase", "Azure DevOps", "Docker", "Git", "TailwindCSS", "Framer Motion", "Figma"],
+      items: [
+        { name: "Firebase", level: "advanced" },
+        { name: "Azure DevOps", level: "better" },
+        { name: "Docker", level: "good" },
+        { name: "Git", level: "advanced" },
+        { name: "TailwindCSS", level: "advanced" },
+        { name: "Framer Motion", level: "good" },
+        { name: "Figma", level: "good" },
+      ],
     },
     {
       title: "Frameworks",
       accent: "#fb7185",
       marker: "FW",
-      items: ["Next.js", "React", "Spring Boot", "Microservices", "Django", "Flutter"],
+      items: [
+        { name: "Next.js", level: "advanced" },
+        { name: "React", level: "advanced" },
+        { name: "Spring Boot", level: "good" },
+        { name: "Microservices", level: "better" },
+        { name: "Django", level: "better" },
+        { name: "Flutter", level: "linear" },
+      ],
     },
     {
       title: "Core",
       accent: "#f97316",
       marker: "CR",
-      items: ["Web Development", "Cloud Infrastructure", "DevOps", "Communication", "Analytical Thinking"],
+      items: [
+        { name: "Web Development", level: "advanced" },
+        { name: "Cloud Infrastructure", level: "good" },
+        { name: "DevOps", level: "better" },
+        { name: "Communication", level: "advanced" },
+        { name: "Analytical Thinking", level: "advanced" },
+      ],
     },
     {
       title: "Misc",
       accent: "#8b5cf6",
       marker: "ET",
-      items: ["Digital Content Creation", "Canva", "Storytelling", "Rapid Prototyping"],
+      items: [
+        { name: "Digital Content Creation", level: "good" },
+        { name: "Canva", level: "good" },
+        { name: "Storytelling", level: "advanced" },
+        { name: "Rapid Prototyping", level: "advanced" },
+      ],
+    },
+  ],
+  certificationsSection: {
+    eyebrow: "Certifications block",
+    title: "Certifications",
+    description: "Selected certifications presented with the same visual weight as each skill cluster card.",
+  },
+  certifications: [
+    {
+      id: "cert-azure-fundamentals",
+      order: 0,
+      title: "Azure Fundamentals",
+      issuer: "Microsoft",
+      issued: "2024",
+      credentialId: "AZ-900",
+      href: "https://learn.microsoft.com/",
+      accent: "#38bdf8",
+      badge: "AZ",
+    },
+    {
+      id: "cert-firebase-apps",
+      order: 1,
+      title: "Firebase App Development",
+      issuer: "Google",
+      issued: "2024",
+      credentialId: "FB-DEV",
+      href: "https://firebase.google.com/",
+      accent: "#f59e0b",
+      badge: "FB",
+    },
+    {
+      id: "cert-react-patterns",
+      order: 2,
+      title: "Advanced React Patterns",
+      issuer: "Frontend Masters",
+      issued: "2025",
+      credentialId: "REACT-PRO",
+      href: "https://frontendmasters.com/",
+      accent: "#fb7185",
+      badge: "RC",
     },
   ],
   heroActions: [
@@ -153,6 +325,13 @@ const education: EducationItem[] = [
 const timeline: TimelineSectionData = {
   title: "Education milestones arranged as a guided journey.",
   description: "Open any milestone to read the details from each stage of the academic path.",
+};
+
+const projectsSection: ProjectsSectionData = {
+  eyebrow: "Project desktop",
+  title: "Project work presented as a friendlier explorer-style workspace.",
+  description:
+    "Open any project to move through overview, screenshots, tech stack, links, README notes, and custom sections from one desktop window.",
 };
 
 const projects: ProjectData[] = [
@@ -415,6 +594,7 @@ export const defaultPortfolioData: PortfolioData = {
   profile,
   timeline,
   education,
+  projectsSection,
   projects,
   contact,
   footer,
@@ -440,7 +620,16 @@ export function mergePortfolioData(partial?: Partial<PortfolioData>): PortfolioD
         ...partial.profile?.idCard,
         frontRoleLines: partial.profile?.idCard?.frontRoleLines ?? base.profile.idCard.frontRoleLines,
       },
-      skillGroups: partial.profile?.skillGroups ?? base.profile.skillGroups,
+      skillsSection: {
+        ...base.profile.skillsSection,
+        ...partial.profile?.skillsSection,
+      },
+      skillGroups: normalizeSkillGroups(partial.profile?.skillGroups, base.profile.skillGroups),
+      certificationsSection: {
+        ...base.profile.certificationsSection,
+        ...partial.profile?.certificationsSection,
+      },
+      certifications: normalizeCertifications(partial.profile?.certifications, base.profile.certifications),
       heroActions: partial.profile?.heroActions ?? base.profile.heroActions,
       socialLinks: partial.profile?.socialLinks ?? base.profile.socialLinks,
     },
@@ -453,6 +642,10 @@ export function mergePortfolioData(partial?: Partial<PortfolioData>): PortfolioD
       ...item,
       order: item.order ?? index,
     })),
+    projectsSection: {
+      ...base.projectsSection,
+      ...partial.projectsSection,
+    },
     projects: (partial.projects ?? base.projects).map((item, index) => {
       const baseProject = base.projects[index % base.projects.length];
 

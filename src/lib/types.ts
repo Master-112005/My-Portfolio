@@ -12,11 +12,36 @@ export type HeroAction = {
   variant: "primary" | "secondary";
 };
 
+export type SectionIntroData = {
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
+export type SkillLevel = "linear" | "better" | "good" | "advanced";
+
+export type SkillItem = {
+  name: string;
+  level: SkillLevel;
+};
+
 export type SkillGroup = {
   title: string;
   accent: string;
   marker: string;
-  items: string[];
+  items: SkillItem[];
+};
+
+export type CertificationItem = {
+  id: string;
+  order: number;
+  title: string;
+  issuer: string;
+  issued: string;
+  credentialId: string;
+  href: string;
+  accent: string;
+  badge: string;
 };
 
 export type TimelineSectionData = {
@@ -45,7 +70,10 @@ export type ProfileData = {
   profileImageAlt: string;
   profileImageSrc: string;
   idCard: IdCardData;
+  skillsSection: SectionIntroData;
   skillGroups: SkillGroup[];
+  certificationsSection: SectionIntroData;
+  certifications: CertificationItem[];
   heroActions: HeroAction[];
   socialLinks: SocialLink[];
 };
@@ -111,10 +139,13 @@ export type FooterData = {
   links: SocialLink[];
 };
 
+export type ProjectsSectionData = SectionIntroData;
+
 export type PortfolioData = {
   profile: ProfileData;
   timeline: TimelineSectionData;
   education: EducationItem[];
+  projectsSection: ProjectsSectionData;
   projects: ProjectData[];
   contact: ContactData;
   footer: FooterData;
@@ -123,6 +154,7 @@ export type PortfolioData = {
 export type EditableSection =
   | "profile"
   | "skills"
+  | "certifications"
   | "timeline"
   | "education"
   | "projects"

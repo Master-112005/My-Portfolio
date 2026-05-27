@@ -7,6 +7,7 @@ import { EditForms } from "@/admin/EditForms";
 import { UnlockPanel } from "@/admin/UnlockPanel";
 import ContactForm from "@/components/Contact/ContactForm";
 import Footer from "@/components/Footer/Footer";
+import CertificationsBlock from "@/components/Hero/CertificationsBlock";
 import HeroSection from "@/components/Hero/HeroSection";
 import SkillsBlock from "@/components/Hero/SkillsBlock";
 import TimelineSection from "@/components/Timeline/TimelineSection";
@@ -53,7 +54,11 @@ export default function PortfolioExperience() {
         <HeroSection />
         <TimelineSection />
         <Desktop />
-        <SkillsBlock groups={data.profile.skillGroups} />
+        <SkillsBlock section={data.profile.skillsSection} groups={data.profile.skillGroups} />
+        <CertificationsBlock
+          section={data.profile.certificationsSection}
+          items={data.profile.certifications}
+        />
         <ContactForm />
         <Footer />
       </main>

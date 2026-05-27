@@ -31,23 +31,77 @@ type VSCodeWindowProps = {
   project: ProjectData;
 };
 
-function ControlButton({
-  color,
+function WindowAction({
   label,
   onClick,
+  tone = "neutral",
+  children,
 }: {
-  color: string;
   label: string;
   onClick: () => void;
+  tone?: "neutral" | "close";
+  children: string;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
+      title={label}
       onClick={onClick}
-      className="h-3.5 w-3.5 rounded-full transition hover:scale-110"
-      style={{ backgroundColor: color }}
-    />
+      className={`flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-[11px] font-semibold transition ${
+        tone === "close"
+          ? "border-rose-400/24 bg-rose-500/10 text-rose-100 hover:bg-rose-500/18"
+          : "border-slate-700/70 bg-slate-900/70 text-slate-200 hover:bg-slate-800"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SectionTab({
+  active,
+  label,
+  meta,
+  accent,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  meta: string;
+  accent: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-w-[10rem] rounded-[1.1rem] border px-4 py-3 text-left transition ${
+        active
+          ? "text-white shadow-[0_16px_28px_rgba(2,6,23,0.28)]"
+          : "border-slate-700/70 bg-slate-900/52 text-slate-300 hover:bg-slate-800/80"
+      }`}
+      style={
+        active
+          ? {
+              borderColor: `color-mix(in srgb, ${accent} 45%, rgba(148,163,184,0.32))`,
+              background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 20%, rgba(15,23,42,0.96)), rgba(15,23,42,0.96))`,
+            }
+          : undefined
+      }
+    >
+      <div className="text-sm font-semibold">{label}</div>
+      <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">{meta}</div>
+    </button>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-[1.15rem] border border-slate-700/70 bg-slate-950/45 p-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+    </div>
   );
 }
 
@@ -96,27 +150,27 @@ export default function VSCodeWindow({
     },
     {
       id: "gallery",
-      label: "Project pics",
-      meta: images.length ? `${images.length} screenshots` : "No screenshots yet",
+      label: "Screenshots",
+      meta: images.length ? `${images.length} images` : "No screenshots",
       kind: "gallery",
     },
     {
       id: "stack",
-      label: "Tech stack + links",
-      meta: stack.length ? `${stack.length} tools listed` : "Stack and URLs",
+      label: "Stack & Links",
+      meta: stack.length ? `${stack.length} tools` : "Tools and URLs",
       kind: "stack",
     },
     {
       id: "readme",
-      label: "README",
-      meta: readme ? "Project notes" : "Add project notes",
+      label: "Notes",
+      meta: readme ? "README content" : "Project notes",
       kind: "readme",
     },
     ...customSections.map(
       (section): ExplorerSection => ({
         id: section.id,
         label: section.title,
-        meta: "Custom section",
+        meta: "Custom view",
         kind: "custom",
         content: section.content,
       }),
@@ -130,35 +184,100 @@ export default function VSCodeWindow({
     mode === "maximized"
       ? "inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)]"
       : mode === "minimized"
-        ? "bottom-4 right-4 h-[5.5rem] w-[20rem]"
-        : "bottom-6 left-[6%] h-[76%] w-[88%]";
+        ? "bottom-4 right-4 h-[6rem] w-[21rem]"
+        : "bottom-6 left-[5%] h-[82%] w-[90%]";
 
   return (
     <motion.div
       layout
-      transition={{ type: "spring", stiffness: 240, damping: 26 }}
-      className={`absolute ${shellClassName} panel-surface-strong overflow-hidden rounded-[1.6rem] border border-slate-700/70 bg-[#0f1727]/95 text-slate-100`}
+      transition={{ type: "spring", stiffness: 220, damping: 28 }}
+      className={`absolute ${shellClassName} overflow-hidden rounded-[1.8rem] border border-slate-700/70 bg-[linear-gradient(180deg,rgba(8,15,28,0.98),rgba(8,15,28,0.94))] text-slate-100 shadow-[0_32px_90px_rgba(2,6,23,0.45)]`}
     >
-      <div className="flex h-full flex-col">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.08),transparent_28%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.08),transparent_26%)]" />
+
+      <div className="relative flex h-full flex-col">
         <div
-          className="flex items-center justify-between border-b border-slate-700/60 bg-[#111827] px-4 py-3"
+          className="border-b border-slate-700/60 bg-slate-950/70 px-4 py-4 backdrop-blur"
           onDoubleClick={mode === "minimized" ? onRestore : onMaximize}
         >
-          <div className="flex items-center gap-2">
-            <ControlButton color="#fb7185" label="Close" onClick={onClose} />
-            <ControlButton
-              color="#facc15"
-              label={mode === "minimized" ? "Restore" : "Minimize"}
-              onClick={mode === "minimized" ? onRestore : onMinimize}
-            />
-            <ControlButton color="#4ade80" label="Maximize" onClick={onMaximize} />
-          </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em]"
+                  style={{
+                    borderColor: `color-mix(in srgb, ${accent} 35%, rgba(148,163,184,0.3))`,
+                    backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`,
+                    color: accent,
+                  }}
+                >
+                  {mode === "maximized" ? "Fullscreen" : mode === "minimized" ? "Minimized" : "Project view"}
+                </span>
+                {status ? (
+                  <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
+                    {status}
+                  </span>
+                ) : null}
+              </div>
 
-          <div className="flex items-center gap-3 text-xs text-slate-400">
-            <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono uppercase tracking-[0.22em]">
-              {mode === "maximized" ? "Fullscreen" : mode === "minimized" ? "Minimized" : "Explorer"}
-            </span>
-            <span className="truncate">{name ? `${name}.workspace` : ""}</span>
+              <div className="flex items-center gap-2">
+                <WindowAction
+                  label={mode === "minimized" ? "Restore" : "Minimize"}
+                  onClick={mode === "minimized" ? onRestore : onMinimize}
+                >
+                  -
+                </WindowAction>
+                <WindowAction
+                  label={mode === "maximized" ? "Windowed" : "Fullscreen"}
+                  onClick={mode === "maximized" ? onRestore : onMaximize}
+                >
+                  []
+                </WindowAction>
+                <WindowAction label="Close" onClick={onClose} tone="close">
+                  x
+                </WindowAction>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                {name ? <h3 className="truncate text-2xl font-semibold tracking-[-0.04em] text-white">{name}</h3> : null}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {repoHref ? (
+                  <a
+                    href={repoHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+                  >
+                    Open repo
+                  </a>
+                ) : null}
+                {liveHref ? (
+                  <a
+                    href={liveHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full px-4 py-2 text-sm font-semibold text-slate-950"
+                    style={{ backgroundColor: accent }}
+                  >
+                    Open live site
+                  </a>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {tagline ? <p className="max-w-3xl text-sm leading-7 text-slate-400">{tagline}</p> : <span />}
+              {mode !== "minimized" ? (
+                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                  {name ? `${name}.workspace` : "project.workspace"}
+                </p>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -166,148 +285,56 @@ export default function VSCodeWindow({
           <button
             type="button"
             onClick={onRestore}
-            className="flex flex-1 items-center justify-between px-4 text-left text-sm text-slate-300 transition hover:bg-white/5"
+            className="flex flex-1 items-center justify-between px-4 text-left transition hover:bg-white/5"
           >
             <div>
-              {name ? <p className="font-semibold text-slate-100">{name}</p> : null}
-              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Click to restore window</p>
+              {name ? <p className="font-semibold text-white">{name}</p> : null}
+              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Click to restore project window</p>
             </div>
-            <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em]">
+            <span className="rounded-full border border-slate-700/70 px-3 py-1 text-xs font-semibold text-slate-200">
               Restore
             </span>
           </button>
         ) : (
-          <div className="grid min-h-0 flex-1 md:grid-cols-[17rem_1fr]">
-            <aside className="flex min-h-0 flex-col border-r border-slate-700/60 bg-[#111827] px-4 py-4">
-              <div className="rounded-[1.35rem] border border-slate-700/70 bg-white/5 p-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Explorer</p>
-                {name ? <h3 className="mt-3 text-lg font-semibold text-white">{name}</h3> : null}
-                {tagline ? <p className="mt-2 text-sm leading-6 text-slate-400">{tagline}</p> : null}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {status ? (
-                    <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-300">
-                      {status}
-                    </span>
-                  ) : null}
-                  <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                    {sections.length} views
-                  </span>
-                </div>
+          <>
+            <div className="border-b border-slate-700/60 bg-slate-950/42 px-4 py-3">
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {sections.map((section) => (
+                  <SectionTab
+                    key={section.id}
+                    active={section.id === activeSection.id}
+                    label={section.label}
+                    meta={section.meta}
+                    accent={accent}
+                    onClick={() => setActiveSectionId(section.id)}
+                  />
+                ))}
               </div>
+            </div>
 
-              <nav className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1" aria-label="Project explorer sections">
-                <div className="space-y-2">
-                  {sections.map((section, index) => {
-                    const isActive = section.id === activeSection.id;
-
-                    return (
-                      <button
-                        key={section.id}
-                        type="button"
-                        onClick={() => setActiveSectionId(section.id)}
-                        className={`w-full rounded-[1.1rem] border px-3 py-3 text-left transition ${
-                          isActive
-                            ? "border-slate-400/60 bg-white/9 text-white"
-                            : "border-slate-700/60 bg-transparent text-slate-300 hover:bg-white/5"
-                        }`}
-                        style={
-                          isActive
-                            ? {
-                                borderColor: `color-mix(in srgb, ${accent} 48%, rgba(148, 163, 184, 0.4))`,
-                                background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 14%, transparent), rgba(255,255,255,0.04))`,
-                              }
-                            : undefined
-                        }
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm font-medium">{section.label}</span>
-                          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{section.meta}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </nav>
-
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-[1.1rem] border border-slate-700/70 bg-white/5 p-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Media</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{images.length}</p>
-                </div>
-                <div className="rounded-[1.1rem] border border-slate-700/70 bg-white/5 p-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Stack</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{stack.length}</p>
-                </div>
-              </div>
-            </aside>
-
-            <div className="min-h-0 overflow-y-auto">
-              <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 bg-[#172033]/95 px-4 py-3 backdrop-blur">
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-white/6 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                    Explorer
-                  </span>
-                  <span className="text-sm text-slate-300">{activeSection.label}</span>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {repoHref ? (
-                    <a
-                      href={repoHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-slate-700/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:bg-white/5"
-                    >
-                      Repo
-                    </a>
-                  ) : null}
-                  {liveHref ? (
-                    <a
-                      href={liveHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full px-3 py-1 text-xs font-semibold text-slate-950"
-                      style={{ backgroundColor: accent }}
-                    >
-                      Open Live
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="px-5 py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-5 py-5 sm:px-6 sm:py-6">
                 {activeSection.kind === "overview" ? (
                   <div className="space-y-6">
-                    <section className="rounded-[1.6rem] border border-slate-700/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5">
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="max-w-3xl">
+                    <section className="rounded-[1.6rem] border border-slate-700/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6">
+                      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                        <div>
                           <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Project overview</p>
-                          {name ? <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">{name}</h3> : null}
+                          {name ? <h4 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">{name}</h4> : null}
                           {description ? <p className="mt-4 text-sm leading-7 text-slate-300">{description}</p> : null}
                         </div>
-                        <div className="grid min-w-[12rem] gap-3 sm:grid-cols-3">
-                          <div className="rounded-[1.15rem] border border-slate-700/70 bg-white/5 p-3">
-                            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Features</p>
-                            <p className="mt-2 text-2xl font-semibold text-white">{features.length}</p>
-                          </div>
-                          <div className="rounded-[1.15rem] border border-slate-700/70 bg-white/5 p-3">
-                            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Screens</p>
-                            <p className="mt-2 text-2xl font-semibold text-white">{images.length}</p>
-                          </div>
-                          <div className="rounded-[1.15rem] border border-slate-700/70 bg-white/5 p-3">
-                            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Stack</p>
-                            <p className="mt-2 text-2xl font-semibold text-white">{stack.length}</p>
-                          </div>
+
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <StatCard label="Features" value={features.length} />
+                          <StatCard label="Screens" value={images.length} />
+                          <StatCard label="Stack" value={stack.length} />
                         </div>
                       </div>
                     </section>
 
-                    <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-                      <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
-                        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Key highlights</p>
+                    <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+                      <section className="rounded-[1.45rem] border border-slate-700/70 bg-slate-950/42 p-5">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Highlights</p>
                         {features.length ? (
                           <ul className="mt-4 space-y-3">
                             {features.map((feature) => (
@@ -322,7 +349,7 @@ export default function VSCodeWindow({
                         )}
                       </section>
 
-                      <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                      <section className="rounded-[1.45rem] border border-slate-700/70 bg-slate-950/42 p-5">
                         <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Project structure</p>
                         {fileTree.length ? (
                           <div className="mt-4 space-y-2">
@@ -333,7 +360,7 @@ export default function VSCodeWindow({
                                 <div
                                   key={file}
                                   className="rounded-[0.95rem] border border-slate-700/60 bg-[#0b1220] px-3 py-2 text-sm text-slate-300"
-                                  style={{ paddingLeft: `${0.9 + depth * 0.7}rem` }}
+                                  style={{ paddingLeft: `${0.9 + depth * 0.65}rem` }}
                                 >
                                   {file}
                                 </div>
@@ -351,7 +378,7 @@ export default function VSCodeWindow({
                         <div className="aspect-[16/9] overflow-hidden">
                           <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
                         </div>
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-4">
                           <div>
                             <p className="text-sm font-medium text-slate-100">
                               {activeImage.caption.trim() || activeImage.alt.trim() || "Project preview"}
@@ -361,9 +388,9 @@ export default function VSCodeWindow({
                           <button
                             type="button"
                             onClick={() => setActiveSectionId("gallery")}
-                            className="rounded-full border border-slate-700/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:bg-white/5"
+                            className="rounded-full border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
                           >
-                            Open pictures
+                            View all screenshots
                           </button>
                         </div>
                       </section>
@@ -373,13 +400,13 @@ export default function VSCodeWindow({
 
                 {activeSection.kind === "gallery" ? (
                   images.length ? (
-                    <div className="space-y-5">
+                    <div className="space-y-6">
                       {activeImage ? (
                         <section className="overflow-hidden rounded-[1.55rem] border border-slate-700/70 bg-[#0a101a]">
                           <div className="aspect-[16/9] overflow-hidden">
                             <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
                           </div>
-                          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-3">
+                          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-4">
                             <div>
                               <p className="text-sm font-medium text-slate-100">
                                 {activeImage.caption.trim() || activeImage.alt.trim() || "Project screenshot"}
@@ -404,7 +431,7 @@ export default function VSCodeWindow({
                             className={`overflow-hidden rounded-[1.25rem] border text-left transition ${
                               clampedImageIndex === index
                                 ? "border-cyan-300/60 bg-cyan-300/8"
-                                : "border-slate-700/70 bg-white/5 hover:bg-white/8"
+                                : "border-slate-700/70 bg-slate-950/42 hover:bg-slate-900/70"
                             }`}
                           >
                             <div className="aspect-[16/10] overflow-hidden bg-[#0a101a]">
@@ -423,15 +450,15 @@ export default function VSCodeWindow({
                       </section>
                     </div>
                   ) : (
-                    <section className="rounded-[1.5rem] border border-dashed border-slate-700/70 bg-white/5 px-5 py-8 text-sm leading-7 text-slate-400">
-                      Add one or more screenshots in edit mode to populate this pictures view.
+                    <section className="rounded-[1.5rem] border border-dashed border-slate-700/70 bg-slate-950/42 px-5 py-8 text-sm leading-7 text-slate-400">
+                      Add one or more screenshots in edit mode to populate this view.
                     </section>
                   )
                 ) : null}
 
                 {activeSection.kind === "stack" ? (
                   <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-                    <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                    <section className="rounded-[1.5rem] border border-slate-700/70 bg-slate-950/42 p-5">
                       <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Tech stack</p>
                       {stack.length ? (
                         <div className="mt-4 flex flex-wrap gap-2">
@@ -457,15 +484,15 @@ export default function VSCodeWindow({
                     </section>
 
                     <div className="space-y-6">
-                      <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
-                        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Links</p>
+                      <section className="rounded-[1.5rem] border border-slate-700/70 bg-slate-950/42 p-5">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Project links</p>
                         <div className="mt-4 space-y-3">
                           {repoHref ? (
                             <a
                               href={repoHref}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex items-center justify-between rounded-[1rem] border border-slate-700/70 px-4 py-3 text-sm text-slate-200 transition hover:bg-white/5"
+                              className="flex items-center justify-between rounded-[1rem] border border-slate-700/70 px-4 py-3 text-sm text-slate-200 transition hover:bg-slate-800"
                             >
                               <span>Repository</span>
                               <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">Open</span>
@@ -476,7 +503,7 @@ export default function VSCodeWindow({
                               href={liveHref}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex items-center justify-between rounded-[1rem] border border-slate-700/70 px-4 py-3 text-sm text-slate-200 transition hover:bg-white/5"
+                              className="flex items-center justify-between rounded-[1rem] border border-slate-700/70 px-4 py-3 text-sm text-slate-200 transition hover:bg-slate-800"
                             >
                               <span>Live preview</span>
                               <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">Open</span>
@@ -489,7 +516,7 @@ export default function VSCodeWindow({
                       </section>
 
                       {fileTree.length ? (
-                        <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                        <section className="rounded-[1.5rem] border border-slate-700/70 bg-slate-950/42 p-5">
                           <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Important files</p>
                           <div className="mt-4 flex flex-wrap gap-2">
                             {fileTree.map((file) => (
@@ -509,7 +536,7 @@ export default function VSCodeWindow({
 
                 {activeSection.kind === "readme" ? (
                   <div className="space-y-6">
-                    <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                    <section className="rounded-[1.5rem] border border-slate-700/70 bg-slate-950/42 p-5">
                       <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">README.md</p>
                       <article className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-300">
                         {readme || "Add a project README in edit mode to show the story, decisions, and implementation notes here."}
@@ -519,7 +546,7 @@ export default function VSCodeWindow({
                     {codeSnippet ? (
                       <section className="rounded-[1.5rem] border border-slate-700/70 bg-[#0a101a] p-5">
                         <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Implementation snippet</p>
-                        <pre className="mt-4 overflow-x-auto text-sm leading-7 text-cyan-100">
+                        <pre className="mt-4 overflow-x-auto rounded-[1rem] bg-black/25 p-4 text-sm leading-7 text-cyan-100">
                           <code>{codeSnippet}</code>
                         </pre>
                       </section>
@@ -528,9 +555,9 @@ export default function VSCodeWindow({
                 ) : null}
 
                 {activeSection.kind === "custom" ? (
-                  <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                  <section className="rounded-[1.5rem] border border-slate-700/70 bg-slate-950/42 p-5">
                     <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Custom section</p>
-                    <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">{activeSection.label}</h3>
+                    <h4 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">{activeSection.label}</h4>
                     <article className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-300">
                       {activeSection.content}
                     </article>
@@ -538,7 +565,7 @@ export default function VSCodeWindow({
                 ) : null}
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </motion.div>

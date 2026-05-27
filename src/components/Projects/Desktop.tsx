@@ -92,6 +92,12 @@ export default function Desktop() {
       : activeProject
         ? "Window open"
         : "Waiting for a launch";
+  const projectsSection = data.projectsSection;
+  const eyebrow = projectsSection.eyebrow.trim() || "Project desktop";
+  const title = projectsSection.title.trim() || "Project work presented as a friendlier explorer-style workspace.";
+  const description =
+    projectsSection.description.trim() ||
+    "Open any project to move through overview, screenshots, tech stack, links, README notes, and custom sections from one desktop window.";
 
   return (
     <section id="projects" className="section-shell">
@@ -99,7 +105,7 @@ export default function Desktop() {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="eyebrow">Project desktop</span>
+              <span className="eyebrow">{eyebrow}</span>
               <EditButton section="projects" itemId={data.projects[0]?.id} label="Edit projects" />
               {isEditMode ? (
                 <button type="button" onClick={() => void handleAddProject()} className="edit-button">
@@ -108,12 +114,8 @@ export default function Desktop() {
                 </button>
               ) : null}
             </div>
-            <h2 className="section-title max-w-3xl font-semibold text-[color:var(--text)]">
-              Project work presented as a friendlier explorer-style workspace.
-            </h2>
-            <p className="section-copy max-w-2xl">
-              Open any project to move through overview, screenshots, tech stack, links, README notes, and custom sections from one desktop window.
-            </p>
+            <h2 className="section-title max-w-3xl font-semibold text-[color:var(--text)]">{title}</h2>
+            <p className="section-copy max-w-2xl">{description}</p>
           </div>
         </div>
 

@@ -20,6 +20,7 @@ import type {
   PortfolioData,
   ProfileData,
   ProjectData,
+  ProjectsSectionData,
   TimelineSectionData,
 } from "@/lib/types";
 
@@ -34,6 +35,7 @@ type SiteDataContextValue = {
   updateEducationItem: (item: EducationItem) => Promise<void>;
   appendEducationItem: () => Promise<EducationItem>;
   deleteEducationItem: (itemId: string) => Promise<void>;
+  updateProjectsSection: (section: ProjectsSectionData) => Promise<void>;
   updateProject: (project: ProjectData) => Promise<void>;
   appendProject: () => Promise<ProjectData>;
   deleteProject: (projectId: string) => Promise<void>;
@@ -184,6 +186,13 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
     }));
   };
 
+  const updateProjectsSection = async (projectsSection: ProjectsSectionData) => {
+    await commit((current) => ({
+      ...current,
+      projectsSection,
+    }));
+  };
+
   const appendProject = async () => {
     const newItem = createProjectItem(dataRef.current.projects.length);
     await commit((current) => ({
@@ -236,6 +245,7 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
         updateEducationItem,
         appendEducationItem,
         deleteEducationItem,
+        updateProjectsSection,
         updateProject,
         appendProject,
         deleteProject,

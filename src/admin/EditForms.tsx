@@ -8,12 +8,15 @@ import { useEditMode } from "@/admin/EditMode";
 import { loadContactMailerSettings, saveContactMailerSettings } from "@/lib/api";
 import { useSiteData } from "@/lib/site-context";
 import type {
+  CertificationItem,
   ContactMailerSettings,
   ContactMailerSettingsInput,
   HeroAction,
   ProjectCustomSection,
   ProjectImage,
   SkillGroup,
+  SkillItem,
+  SkillLevel,
   SocialLink,
 } from "@/lib/types";
 import { createIdCardImageDataUrl, createProjectImageDataUrl } from "@/utils/profile-image";
@@ -21,12 +24,32 @@ import { createIdCardImageDataUrl, createProjectImageDataUrl } from "@/utils/pro
 type FormState = Record<string, string>;
 const MAX_PROJECT_IMAGES = 6;
 
+const DEFAULT_SKILL_LEVEL: SkillLevel = "good";
+const skillLevelOptions: SkillLevel[] = ["linear", "better", "good", "advanced"];
+
 type SkillGroupDraft = {
   id: string;
   title: string;
   accent: string;
   marker: string;
-  items: string;
+  items: SkillItemDraft[];
+};
+
+type SkillItemDraft = {
+  id: string;
+  name: string;
+  level: SkillLevel;
+};
+
+type CertificationDraft = {
+  id: string;
+  title: string;
+  issuer: string;
+  issued: string;
+  credentialId: string;
+  href: string;
+  accent: string;
+  badge: string;
 };
 
 type ProjectImageDraft = {
@@ -94,6 +117,18 @@ function parseList(value: string) {
     .filter(Boolean);
 }
 
+function normalizeSkillLevel(value: string): SkillLevel {
+  return skillLevelOptions.includes(value as SkillLevel) ? (value as SkillLevel) : DEFAULT_SKILL_LEVEL;
+}
+
+function createSkillItemDraft(item?: SkillItem, index = 0): SkillItemDraft {
+  return {
+    id: `skill-item-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    name: item?.name ?? "",
+    level: normalizeSkillLevel(item?.level ?? DEFAULT_SKILL_LEVEL),
+  };
+}
+
 function createSkillGroupDraft(group?: SkillGroup, index = 0): SkillGroupDraft {
   const title = group?.title ?? "New Cluster";
 
@@ -102,7 +137,7 @@ function createSkillGroupDraft(group?: SkillGroup, index = 0): SkillGroupDraft {
     title,
     accent: group?.accent ?? "#67e8f9",
     marker: ((group?.marker ?? title.slice(0, 2)) || "SC").slice(0, 2).toUpperCase(),
-    items: group?.items.join("\n") ?? "",
+    items: group?.items.length ? group.items.map((item, itemIndex) => createSkillItemDraft(item, itemIndex)) : [],
   };
 }
 
@@ -114,7 +149,20 @@ function normalizeSkillGroupDrafts(groups: SkillGroupDraft[]) {
   return groups
     .map((group): SkillGroup | null => {
       const title = group.title.trim();
-      const items = parseList(group.items);
+      const items = group.items
+        .map((item): SkillItem | null => {
+          const name = item.name.trim();
+
+          if (!name) {
+            return null;
+          }
+
+          return {
+            name,
+            level: normalizeSkillLevel(item.level),
+          };
+        })
+        .filter((item): item is SkillItem => Boolean(item));
 
       if (!title && !items.length) {
         return null;
@@ -128,6 +176,50 @@ function normalizeSkillGroupDrafts(groups: SkillGroupDraft[]) {
       };
     })
     .filter((group): group is SkillGroup => Boolean(group));
+}
+
+function createCertificationDraft(item?: CertificationItem, index = 0): CertificationDraft {
+  const title = item?.title ?? `Certification ${index + 1}`;
+
+  return {
+    id: item?.id ?? `certification-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    title,
+    issuer: item?.issuer ?? "",
+    issued: item?.issued ?? "",
+    credentialId: item?.credentialId ?? "",
+    href: item?.href ?? "",
+    accent: item?.accent ?? "#67e8f9",
+    badge: ((item?.badge ?? title.slice(0, 2)) || "CT").slice(0, 2).toUpperCase(),
+  };
+}
+
+function buildCertificationDrafts(items: CertificationItem[]) {
+  return items.length ? items.map((item, index) => createCertificationDraft(item, index)) : [];
+}
+
+function normalizeCertificationDrafts(items: CertificationDraft[]) {
+  return items
+    .map((item, index): CertificationItem | null => {
+      const title = item.title.trim();
+      const issuer = item.issuer.trim();
+
+      if (!title && !issuer) {
+        return null;
+      }
+
+      return {
+        id: item.id,
+        order: index,
+        title,
+        issuer,
+        issued: item.issued.trim(),
+        credentialId: item.credentialId.trim(),
+        href: item.href.trim(),
+        accent: item.accent.trim(),
+        badge: item.badge.trim().slice(0, 2).toUpperCase(),
+      };
+    })
+    .filter((item): item is CertificationItem => Boolean(item));
 }
 
 function createProjectImageDraft(image?: ProjectImage, index = 0): ProjectImageDraft {
@@ -224,7 +316,17 @@ function buildFormState(
         socialLinks: serializeLinks(data.profile.socialLinks),
       };
     case "skills":
-      return {};
+      return {
+        eyebrow: data.profile.skillsSection.eyebrow,
+        title: data.profile.skillsSection.title,
+        description: data.profile.skillsSection.description,
+      };
+    case "certifications":
+      return {
+        eyebrow: data.profile.certificationsSection.eyebrow,
+        title: data.profile.certificationsSection.title,
+        description: data.profile.certificationsSection.description,
+      };
     case "timeline":
       return {
         title: data.timeline.title,
@@ -249,6 +351,9 @@ function buildFormState(
 
       return item
         ? {
+            eyebrow: data.projectsSection.eyebrow,
+            sectionTitle: data.projectsSection.title,
+            sectionDescription: data.projectsSection.description,
             name: item.name,
             tagline: item.tagline,
             description: item.description,
@@ -263,7 +368,11 @@ function buildFormState(
             codeSnippet: item.codeSnippet,
             readme: item.readme,
           }
-        : {};
+        : {
+            eyebrow: data.projectsSection.eyebrow,
+            sectionTitle: data.projectsSection.title,
+            sectionDescription: data.projectsSection.description,
+          };
     }
     case "contact":
       return {
@@ -336,6 +445,7 @@ function Field({
 export function EditForms() {
   const { closeEditor, editor, openEditor } = useEditMode();
   const {
+    appendProject,
     data,
     isSaving,
     deleteEducationItem,
@@ -345,10 +455,12 @@ export function EditForms() {
     updateFooter,
     updateProfile,
     updateProject,
+    updateProjectsSection,
     updateTimeline,
   } = useSiteData();
   const [formState, setFormState] = useState<FormState>({});
   const [skillGroupsDraft, setSkillGroupsDraft] = useState<SkillGroupDraft[]>([]);
+  const [certificationDrafts, setCertificationDrafts] = useState<CertificationDraft[]>([]);
   const [projectImagesDraft, setProjectImagesDraft] = useState<ProjectImageDraft[]>([]);
   const [projectCustomSectionsDraft, setProjectCustomSectionsDraft] = useState<ProjectCustomSectionDraft[]>([]);
   const [isProcessingProfileImage, setIsProcessingProfileImage] = useState(false);
@@ -364,6 +476,7 @@ export function EditForms() {
     if (!editor) {
       setFormState({});
       setSkillGroupsDraft([]);
+      setCertificationDrafts([]);
       setProjectImagesDraft([]);
       setProjectCustomSectionsDraft([]);
       setIsProcessingProfileImage(false);
@@ -379,6 +492,9 @@ export function EditForms() {
 
     setFormState(buildFormState(editor, data));
     setSkillGroupsDraft(editor.section === "skills" ? buildSkillGroupDrafts(data.profile.skillGroups) : []);
+    setCertificationDrafts(
+      editor.section === "certifications" ? buildCertificationDrafts(data.profile.certifications) : [],
+    );
     setProjectImagesDraft(
       editor.section === "projects"
         ? buildProjectImageDrafts(data.projects.find((entry) => entry.id === editor.itemId)?.images ?? [])
@@ -447,6 +563,11 @@ export function EditForms() {
     return null;
   }
 
+  const selectedProject =
+    editor.section === "projects"
+      ? data.projects.find((entry) => entry.id === editor.itemId) ?? null
+      : null;
+
   const setValue = (key: string, value: string) => {
     if (editor.section === "mailer") {
       setMailerError(null);
@@ -458,7 +579,11 @@ export function EditForms() {
     }));
   };
 
-  const updateSkillGroupDraft = (id: string, key: keyof Omit<SkillGroupDraft, "id">, value: string) => {
+  const updateSkillGroupDraft = (
+    id: string,
+    key: "title" | "accent" | "marker",
+    value: string,
+  ) => {
     setSkillGroupsDraft((current) =>
       current.map((group) =>
         group.id === id
@@ -477,6 +602,77 @@ export function EditForms() {
 
   const deleteSkillGroup = (id: string) => {
     setSkillGroupsDraft((current) => current.filter((group) => group.id !== id));
+  };
+
+  const addSkillItem = (groupId: string) => {
+    setSkillGroupsDraft((current) =>
+      current.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              items: [...group.items, createSkillItemDraft(undefined, group.items.length)],
+            }
+          : group,
+      ),
+    );
+  };
+
+  const updateSkillItem = (groupId: string, itemId: string, key: keyof Omit<SkillItemDraft, "id">, value: string) => {
+    setSkillGroupsDraft((current) =>
+      current.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              items: group.items.map((item) =>
+                item.id === itemId
+                  ? {
+                      ...item,
+                      [key]: key === "level" ? normalizeSkillLevel(value) : value,
+                    }
+                  : item,
+              ),
+            }
+          : group,
+      ),
+    );
+  };
+
+  const deleteSkillItem = (groupId: string, itemId: string) => {
+    setSkillGroupsDraft((current) =>
+      current.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              items: group.items.filter((item) => item.id !== itemId),
+            }
+          : group,
+      ),
+    );
+  };
+
+  const updateCertificationDraft = (
+    id: string,
+    key: keyof Omit<CertificationDraft, "id">,
+    value: string,
+  ) => {
+    setCertificationDrafts((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [key]: key === "badge" ? value.toUpperCase().slice(0, 2) : value,
+            }
+          : item,
+      ),
+    );
+  };
+
+  const addCertification = () => {
+    setCertificationDrafts((current) => [...current, createCertificationDraft(undefined, current.length)]);
+  };
+
+  const deleteCertification = (id: string) => {
+    setCertificationDrafts((current) => current.filter((item) => item.id !== id));
   };
 
   const updateProjectImageDraft = (id: string, key: keyof Omit<ProjectImageDraft, "id" | "src">, value: string) => {
@@ -630,7 +826,23 @@ export function EditForms() {
       case "skills":
         await updateProfile({
           ...data.profile,
+          skillsSection: {
+            eyebrow: formState.eyebrow.trim(),
+            title: formState.title.trim(),
+            description: formState.description.trim(),
+          },
           skillGroups: normalizeSkillGroupDrafts(skillGroupsDraft),
+        });
+        break;
+      case "certifications":
+        await updateProfile({
+          ...data.profile,
+          certificationsSection: {
+            eyebrow: formState.eyebrow.trim(),
+            title: formState.title.trim(),
+            description: formState.description.trim(),
+          },
+          certifications: normalizeCertificationDrafts(certificationDrafts),
         });
         break;
       case "timeline":
@@ -658,10 +870,16 @@ export function EditForms() {
         break;
       }
       case "projects": {
+        await updateProjectsSection({
+          eyebrow: formState.eyebrow.trim(),
+          title: formState.sectionTitle.trim(),
+          description: formState.sectionDescription.trim(),
+        });
+
         const item = data.projects.find((entry) => entry.id === editor.itemId);
 
         if (!item) {
-          return;
+          break;
         }
 
         await updateProject({
@@ -780,6 +998,7 @@ export function EditForms() {
   const titleMap = {
     profile: "Edit profile and ID card",
     skills: "Edit skills",
+    certifications: "Edit certifications",
     timeline: "Edit education journey copy",
     education: "Edit education stage",
     projects: "Edit project",
@@ -948,10 +1167,24 @@ export function EditForms() {
               {editor.section === "skills" ? (
                 <>
                   <div className="sm:col-span-2 space-y-1">
-                    <span className="eyebrow">Skill clusters</span>
+                    <span className="eyebrow">Skills section copy</span>
                     <p className="text-sm text-[color:var(--text-soft)]">
-                      Edit each skills card directly and add or delete whole skill clusters as needed.
+                      Edit the section heading and each cluster. Every skill now stores its own proficiency level.
                     </p>
+                  </div>
+                  <Field
+                    label="Section eyebrow"
+                    value={formState.eyebrow ?? ""}
+                    onChange={(value) => setValue("eyebrow", value)}
+                  />
+                  <Field label="Section title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)} />
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Section description"
+                      value={formState.description ?? ""}
+                      onChange={(value) => setValue("description", value)}
+                      multiline
+                    />
                   </div>
                   <div className="sm:col-span-2">
                     <button type="button" onClick={addSkillGroup} className="edit-button">
@@ -1013,18 +1246,179 @@ export function EditForms() {
                             onChange={(value) => updateSkillGroupDraft(group.id, "accent", value)}
                             placeholder="#67e8f9"
                           />
-                          <div className="sm:col-span-3">
-                            <Field
-                              label="Skills"
-                              value={group.items}
-                              onChange={(value) => updateSkillGroupDraft(group.id, "items", value)}
-                              multiline
-                              placeholder={"TypeScript\nJavaScript\nPython"}
-                            />
+
+                          <div className="sm:col-span-3 rounded-[1.2rem] border border-[color:var(--line)] bg-black/10 p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                  Skills + proficiency
+                                </p>
+                                <p className="mt-1 text-sm text-[color:var(--text-soft)]">
+                                  Use Linear, Better, Good, or Advanced for each skill inside this cluster.
+                                </p>
+                              </div>
+                              <button type="button" onClick={() => addSkillItem(group.id)} className="edit-button">
+                                <span aria-hidden="true">+</span>
+                                <span>Add skill</span>
+                              </button>
+                            </div>
+
+                            <div className="mt-4 space-y-3">
+                              {group.items.length ? (
+                                group.items.map((item, itemIndex) => (
+                                  <div
+                                    key={item.id}
+                                    className="grid gap-3 rounded-[1rem] border border-[color:var(--line)] bg-[color:var(--surface)]/48 p-3 sm:grid-cols-[1fr_13rem_auto]"
+                                  >
+                                    <Field
+                                      label={`Skill ${String(itemIndex + 1).padStart(2, "0")}`}
+                                      value={item.name}
+                                      onChange={(value) => updateSkillItem(group.id, item.id, "name", value)}
+                                      placeholder="TypeScript"
+                                    />
+                                    <label className="space-y-2">
+                                      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                        Level
+                                      </span>
+                                      <select
+                                        value={item.level}
+                                        onChange={(event) => updateSkillItem(group.id, item.id, "level", event.target.value)}
+                                        className="input-surface"
+                                      >
+                                        {skillLevelOptions.map((level) => (
+                                          <option key={level} value={level}>
+                                            {level[0].toUpperCase() + level.slice(1)}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteSkillItem(group.id, item.id)}
+                                      className="self-end rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="rounded-[1rem] border border-dashed border-[color:var(--line)] px-4 py-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                                  No skills added yet in this cluster.
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     ))}
+                  </div>
+                </>
+              ) : null}
+
+              {editor.section === "certifications" ? (
+                <>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Certifications block</span>
+                    <p className="text-sm text-[color:var(--text-soft)]">
+                      Edit the certifications section heading and manage each certificate card directly from here.
+                    </p>
+                  </div>
+                  <Field
+                    label="Section eyebrow"
+                    value={formState.eyebrow ?? ""}
+                    onChange={(value) => setValue("eyebrow", value)}
+                  />
+                  <Field label="Section title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)} />
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Section description"
+                      value={formState.description ?? ""}
+                      onChange={(value) => setValue("description", value)}
+                      multiline
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <button type="button" onClick={addCertification} className="edit-button">
+                      <span aria-hidden="true">+</span>
+                      <span>Add certification</span>
+                    </button>
+                  </div>
+                  <div className="sm:col-span-2 grid gap-4">
+                    {certificationDrafts.length ? (
+                      certificationDrafts.map((item, index) => (
+                        <div
+                          key={item.id}
+                          className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/58 p-4"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                Certificate {String(index + 1).padStart(2, "0")}
+                              </p>
+                              <p className="mt-1 text-base font-medium text-[color:var(--text)]">
+                                {item.title.trim() || "New certification"}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => deleteCertification(item.id)}
+                              className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
+                            >
+                              Delete certificate
+                            </button>
+                          </div>
+
+                          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                            <Field
+                              label="Title"
+                              value={item.title}
+                              onChange={(value) => updateCertificationDraft(item.id, "title", value)}
+                            />
+                            <Field
+                              label="Issuer"
+                              value={item.issuer}
+                              onChange={(value) => updateCertificationDraft(item.id, "issuer", value)}
+                            />
+                            <Field
+                              label="Issued"
+                              value={item.issued}
+                              onChange={(value) => updateCertificationDraft(item.id, "issued", value)}
+                              placeholder="2025"
+                            />
+                            <Field
+                              label="Credential ID"
+                              value={item.credentialId}
+                              onChange={(value) => updateCertificationDraft(item.id, "credentialId", value)}
+                              placeholder="AZ-900"
+                            />
+                            <Field
+                              label="Badge"
+                              value={item.badge}
+                              onChange={(value) => updateCertificationDraft(item.id, "badge", value)}
+                              placeholder="AZ"
+                            />
+                            <Field
+                              label="Accent"
+                              value={item.accent}
+                              onChange={(value) => updateCertificationDraft(item.id, "accent", value)}
+                              placeholder="#38bdf8"
+                            />
+                            <div className="sm:col-span-2">
+                              <Field
+                                label="Certificate URL"
+                                value={item.href}
+                                onChange={(value) => updateCertificationDraft(item.id, "href", value)}
+                                placeholder="https://..."
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
+                        No certifications added yet.
+                      </div>
+                    )}
                   </div>
                 </>
               ) : null}
@@ -1101,253 +1495,292 @@ export function EditForms() {
               {editor.section === "projects" ? (
                 <>
                   <div className="sm:col-span-2 space-y-1">
-                    <span className="eyebrow">Explorer layout</span>
+                    <span className="eyebrow">Project desktop copy</span>
                     <p className="text-sm leading-6 text-[color:var(--text-soft)]">
-                      Each project now opens with fixed Explorer views for overview, pictures, stack and links, and
-                      README, plus any custom sections you add below.
+                      These fields control the heading, title, and description shown above the explorer workspace.
                     </p>
                   </div>
+                  <Field label="Section eyebrow" value={formState.eyebrow ?? ""} onChange={(value) => setValue("eyebrow", value)} />
                   <Field
-                    label="Project name"
-                    value={formState.name ?? ""}
-                    onChange={(value) => setValue("name", value)}
-                  />
-                  <Field
-                    label="Icon label"
-                    value={formState.icon ?? ""}
-                    onChange={(value) => setValue("icon", value)}
+                    label="Section title"
+                    value={formState.sectionTitle ?? ""}
+                    onChange={(value) => setValue("sectionTitle", value)}
                   />
                   <div className="sm:col-span-2">
                     <Field
-                      label="Tagline"
-                      value={formState.tagline ?? ""}
-                      onChange={(value) => setValue("tagline", value)}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Field
-                      label="Description"
-                      value={formState.description ?? ""}
-                      onChange={(value) => setValue("description", value)}
+                      label="Section description"
+                      value={formState.sectionDescription ?? ""}
+                      onChange={(value) => setValue("sectionDescription", value)}
                       multiline
                     />
                   </div>
-                    <Field
-                      label="Stack"
-                      value={formState.stack ?? ""}
-                      onChange={(value) => setValue("stack", value)}
-                      placeholder="Next.js, TypeScript, Firebase"
-                  />
-                  <Field
-                    label="Status"
-                    value={formState.status ?? ""}
-                    onChange={(value) => setValue("status", value)}
-                  />
-                  <Field
-                    label="Repo URL"
-                    value={formState.repoHref ?? ""}
-                    onChange={(value) => setValue("repoHref", value)}
-                  />
-                  <Field
-                    label="Live URL"
-                    value={formState.liveHref ?? ""}
-                    onChange={(value) => setValue("liveHref", value)}
-                  />
-                    <Field
-                      label="Accent color"
-                      value={formState.accent ?? ""}
-                      onChange={(value) => setValue("accent", value)}
-                      placeholder="#14b8a6"
-                    />
-                  <div className="sm:col-span-2">
-                    <Field
-                      label="README"
-                      value={formState.readme ?? ""}
-                      onChange={(value) => setValue("readme", value)}
-                      multiline
-                      placeholder="# Project README"
-                    />
+                  <div className="sm:col-span-2 space-y-1 pt-2">
+                    <span className="eyebrow">Project entries</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      Each project still opens with overview, pictures, stack and links, README, and any custom sections you add.
+                    </p>
                   </div>
-                  <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="space-y-2">
-                        <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
-                          Project images
-                        </p>
+                  {!selectedProject ? (
+                    <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
-                          Upload one or more images and the system will crop, resize, and optimize them for the project
-                          overview gallery in the VSCode window.
+                          No project is selected yet. Save the desktop copy above or create a new project now.
                         </p>
+                        <button
+                          type="button"
+                          onClick={() => void appendProject().then((project) => openEditor("projects", project.id))}
+                          className="edit-button"
+                        >
+                          <span aria-hidden="true">+</span>
+                          <span>Add project</span>
+                        </button>
                       </div>
-                      <label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110">
-                        <span>{isProcessingProjectImages ? "Processing..." : "Upload images"}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={(event) => void handleProjectImageUpload(event)}
-                          className="sr-only"
-                          disabled={isProcessingProjectImages}
+                    </div>
+                  ) : (
+                    <>
+                      <Field
+                        label="Project name"
+                        value={formState.name ?? ""}
+                        onChange={(value) => setValue("name", value)}
+                      />
+                      <Field
+                        label="Icon label"
+                        value={formState.icon ?? ""}
+                        onChange={(value) => setValue("icon", value)}
+                      />
+                      <div className="sm:col-span-2">
+                        <Field
+                          label="Tagline"
+                          value={formState.tagline ?? ""}
+                          onChange={(value) => setValue("tagline", value)}
                         />
-                      </label>
-                    </div>
-
-                    <div className="mt-4 space-y-4">
-                      {projectImagesDraft.length ? (
-                        projectImagesDraft.map((image, index) => (
-                          <div
-                            key={image.id}
-                            className="grid gap-4 rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4 lg:grid-cols-[12rem_1fr]"
-                          >
-                            <div className="overflow-hidden rounded-[1rem] border border-[color:var(--line)] bg-[#0a101a] aspect-[16/10]">
-                              <img src={image.src} alt={image.alt || `Project image ${index + 1}`} className="h-full w-full object-cover" />
-                            </div>
-
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between gap-3">
-                                <div>
-                                  <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
-                                    Screenshot {String(index + 1).padStart(2, "0")}
-                                  </p>
-                                  <p className="mt-1 text-sm text-[color:var(--text-soft)]">
-                                    This image appears in the Project pics view inside the Explorer window.
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteProjectImageDraft(image.id)}
-                                  className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
-                                >
-                                  Delete image
-                                </button>
-                              </div>
-
-                              <div className="grid gap-4 sm:grid-cols-2">
-                                <Field
-                                  label="Caption"
-                                  value={image.caption}
-                                  onChange={(value) => updateProjectImageDraft(image.id, "caption", value)}
-                                  placeholder="Overview of the live dashboard"
-                                />
-                                <Field
-                                  label="Alt text"
-                                  value={image.alt}
-                                  onChange={(value) => updateProjectImageDraft(image.id, "alt", value)}
-                                  placeholder="Dashboard screenshot"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
-                          No project images uploaded yet. Add one or more screenshots to populate the overview gallery.
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-4 text-sm leading-6 text-[color:var(--text-soft)]">
-                      {projectImageError ? (
-                        <p className="text-rose-300">{projectImageError}</p>
-                      ) : (
-                        <p>
-                          Up to {MAX_PROJECT_IMAGES} processed images can be stored per project. Each upload is
-                          normalized automatically for a clean gallery layout.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="space-y-2">
-                        <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
-                          Custom Explorer sections
-                        </p>
-                        <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
-                          Add extra Explorer options for anything that does not fit the default views, such as results,
-                          architecture notes, deployment details, or case-study context.
-                        </p>
                       </div>
-                      <button type="button" onClick={addProjectCustomSection} className="edit-button">
-                        <span aria-hidden="true">+</span>
-                        <span>Add section</span>
-                      </button>
-                    </div>
-
-                    <div className="mt-4 space-y-4">
-                      {projectCustomSectionsDraft.length ? (
-                        projectCustomSectionsDraft.map((section, index) => (
-                          <div
-                            key={section.id}
-                            className="rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
-                                  Custom option {String(index + 1).padStart(2, "0")}
-                                </p>
-                                <p className="mt-1 text-sm text-[color:var(--text-soft)]">
-                                  The title becomes the Explorer label. The content is shown in its own detail view.
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => deleteProjectCustomSectionDraft(section.id)}
-                                className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
-                              >
-                                Delete section
-                              </button>
-                            </div>
-
-                            <div className="mt-4 grid gap-4">
-                              <Field
-                                label="Section title"
-                                value={section.title}
-                                onChange={(value) => updateProjectCustomSectionDraft(section.id, "title", value)}
-                                placeholder="Results"
-                              />
-                              <Field
-                                label="Section content"
-                                value={section.content}
-                                onChange={(value) => updateProjectCustomSectionDraft(section.id, "content", value)}
-                                multiline
-                                placeholder="Add the notes that should appear in this custom Explorer view."
-                              />
-                            </div>
+                      <div className="sm:col-span-2">
+                        <Field
+                          label="Description"
+                          value={formState.description ?? ""}
+                          onChange={(value) => setValue("description", value)}
+                          multiline
+                        />
+                      </div>
+                      <Field
+                        label="Stack"
+                        value={formState.stack ?? ""}
+                        onChange={(value) => setValue("stack", value)}
+                        placeholder="Next.js, TypeScript, Firebase"
+                      />
+                      <Field
+                        label="Status"
+                        value={formState.status ?? ""}
+                        onChange={(value) => setValue("status", value)}
+                      />
+                      <Field
+                        label="Repo URL"
+                        value={formState.repoHref ?? ""}
+                        onChange={(value) => setValue("repoHref", value)}
+                      />
+                      <Field
+                        label="Live URL"
+                        value={formState.liveHref ?? ""}
+                        onChange={(value) => setValue("liveHref", value)}
+                      />
+                      <Field
+                        label="Accent color"
+                        value={formState.accent ?? ""}
+                        onChange={(value) => setValue("accent", value)}
+                        placeholder="#14b8a6"
+                      />
+                      <div className="sm:col-span-2">
+                        <Field
+                          label="README"
+                          value={formState.readme ?? ""}
+                          onChange={(value) => setValue("readme", value)}
+                          multiline
+                          placeholder="# Project README"
+                        />
+                      </div>
+                      <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-2">
+                            <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                              Project images
+                            </p>
+                            <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
+                              Upload one or more images and the system will crop, resize, and optimize them for the project overview gallery in the VSCode window.
+                            </p>
                           </div>
-                        ))
-                      ) : (
-                        <div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
-                          No custom Explorer sections yet. Add one when you want a project-specific tab beyond the
-                          default overview, pictures, stack and links, and README views.
+                          <label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110">
+                            <span>{isProcessingProjectImages ? "Processing..." : "Upload images"}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={(event) => void handleProjectImageUpload(event)}
+                              className="sr-only"
+                              disabled={isProcessingProjectImages}
+                            />
+                          </label>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Field
-                      label="Features"
-                      value={formState.features ?? ""}
-                      onChange={(value) => setValue("features", value)}
-                      multiline
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Field
-                      label="File tree"
-                      value={formState.fileTree ?? ""}
-                      onChange={(value) => setValue("fileTree", value)}
-                      multiline
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Field
-                      label="Code snippet"
-                      value={formState.codeSnippet ?? ""}
-                      onChange={(value) => setValue("codeSnippet", value)}
-                      multiline
-                    />
-                  </div>
+
+                        <div className="mt-4 space-y-4">
+                          {projectImagesDraft.length ? (
+                            projectImagesDraft.map((image, index) => (
+                              <div
+                                key={image.id}
+                                className="grid gap-4 rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4 lg:grid-cols-[12rem_1fr]"
+                              >
+                                <div className="overflow-hidden rounded-[1rem] border border-[color:var(--line)] bg-[#0a101a] aspect-[16/10]">
+                                  <img
+                                    src={image.src}
+                                    alt={image.alt || `Project image ${index + 1}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                      <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                        Screenshot {String(index + 1).padStart(2, "0")}
+                                      </p>
+                                      <p className="mt-1 text-sm text-[color:var(--text-soft)]">
+                                        This image appears in the Project pics view inside the Explorer window.
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteProjectImageDraft(image.id)}
+                                      className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
+                                    >
+                                      Delete image
+                                    </button>
+                                  </div>
+
+                                  <div className="grid gap-4 sm:grid-cols-2">
+                                    <Field
+                                      label="Caption"
+                                      value={image.caption}
+                                      onChange={(value) => updateProjectImageDraft(image.id, "caption", value)}
+                                      placeholder="Overview of the live dashboard"
+                                    />
+                                    <Field
+                                      label="Alt text"
+                                      value={image.alt}
+                                      onChange={(value) => updateProjectImageDraft(image.id, "alt", value)}
+                                      placeholder="Dashboard screenshot"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
+                              No project images uploaded yet. Add one or more screenshots to populate the overview gallery.
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                          {projectImageError ? (
+                            <p className="text-rose-300">{projectImageError}</p>
+                          ) : (
+                            <p>
+                              Up to {MAX_PROJECT_IMAGES} processed images can be stored per project. Each upload is normalized automatically for a clean gallery layout.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-2">
+                            <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                              Custom Explorer sections
+                            </p>
+                            <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
+                              Add extra Explorer options for anything that does not fit the default views, such as results, architecture notes, deployment details, or case-study context.
+                            </p>
+                          </div>
+                          <button type="button" onClick={addProjectCustomSection} className="edit-button">
+                            <span aria-hidden="true">+</span>
+                            <span>Add section</span>
+                          </button>
+                        </div>
+
+                        <div className="mt-4 space-y-4">
+                          {projectCustomSectionsDraft.length ? (
+                            projectCustomSectionsDraft.map((section, index) => (
+                              <div
+                                key={section.id}
+                                className="rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                      Custom option {String(index + 1).padStart(2, "0")}
+                                    </p>
+                                    <p className="mt-1 text-sm text-[color:var(--text-soft)]">
+                                      The title becomes the Explorer label. The content is shown in its own detail view.
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteProjectCustomSectionDraft(section.id)}
+                                    className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
+                                  >
+                                    Delete section
+                                  </button>
+                                </div>
+
+                                <div className="mt-4 grid gap-4">
+                                  <Field
+                                    label="Section title"
+                                    value={section.title}
+                                    onChange={(value) => updateProjectCustomSectionDraft(section.id, "title", value)}
+                                    placeholder="Results"
+                                  />
+                                  <Field
+                                    label="Section content"
+                                    value={section.content}
+                                    onChange={(value) => updateProjectCustomSectionDraft(section.id, "content", value)}
+                                    multiline
+                                    placeholder="Add the notes that should appear in this custom Explorer view."
+                                  />
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
+                              No custom Explorer sections yet. Add one when you want a project-specific tab beyond the default overview, pictures, stack and links, and README views.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field
+                          label="Features"
+                          value={formState.features ?? ""}
+                          onChange={(value) => setValue("features", value)}
+                          multiline
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field
+                          label="File tree"
+                          value={formState.fileTree ?? ""}
+                          onChange={(value) => setValue("fileTree", value)}
+                          multiline
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field
+                          label="Code snippet"
+                          value={formState.codeSnippet ?? ""}
+                          onChange={(value) => setValue("codeSnippet", value)}
+                          multiline
+                        />
+                      </div>
+                    </>
+                  )}
                 </>
               ) : null}
 
@@ -1546,7 +1979,7 @@ export function EditForms() {
             </div>
 
             <div className="mt-6 flex flex-col gap-3 border-t border-[color:var(--line)] pt-6 sm:flex-row sm:justify-end">
-              {editor.section === "education" || editor.section === "projects" ? (
+              {editor.section === "education" || (editor.section === "projects" && Boolean(selectedProject)) ? (
                 <button
                   type="button"
                   onClick={() => void handleDelete()}
