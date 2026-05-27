@@ -5,6 +5,7 @@ import type {
   PortfolioData,
   ProfileData,
   ProjectData,
+  TimelineSectionData,
 } from "@/lib/types";
 
 const profile: ProfileData = {
@@ -149,6 +150,11 @@ const education: EducationItem[] = [
   },
 ];
 
+const timeline: TimelineSectionData = {
+  title: "Education milestones arranged as a guided journey.",
+  description: "Open any milestone to read the details from each stage of the academic path.",
+};
+
 const projects: ProjectData[] = [
   {
     id: "signal-desk",
@@ -182,7 +188,26 @@ const projects: ProjectData[] = [
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 3);
 }`,
+    readme: `# Signal Desk
+
+Signal Desk is designed as a calm analytics workspace for teams that need fast answers without dashboard overload.
+
+## What it solves
+- Pulls activity, alerts, and KPIs into one surface
+- Helps product and operations teams see what changed first
+- Turns noisy metrics into priority-ordered insight cards
+
+## Build notes
+The interface uses a narrative layout so the most important information stays visible before deeper data views are opened.`,
     images: [],
+    customSections: [
+      {
+        id: "signal-desk-outcomes",
+        title: "Outcomes",
+        content:
+          "Designed to shorten the distance between raw metrics and action. The main success metric is faster triage during live product changes.",
+      },
+    ],
   },
   {
     id: "atlas-commerce",
@@ -215,7 +240,26 @@ const projects: ProjectData[] = [
   label: product.name,
   mood: product.collection,
 }));`,
+    readme: `# Atlas Commerce
+
+Atlas Commerce explores how a storefront can feel curated instead of purely transactional.
+
+## Experience goals
+- Use editorial pacing to guide discovery
+- Keep checkout fast even with a rich visual layer
+- Make collection storytelling part of conversion, not decoration
+
+## Build notes
+Motion is used to reinforce hierarchy and product mood instead of adding generic animation.`,
     images: [],
+    customSections: [
+      {
+        id: "atlas-commerce-merchandising",
+        title: "Merchandising",
+        content:
+          "The custom merchandising layer focuses on featured collections, seasonal stories, and visual grouping rules for higher product discoverability.",
+      },
+    ],
   },
   {
     id: "story-engine",
@@ -247,7 +291,24 @@ const projects: ProjectData[] = [
   whileInView: { opacity: 1, y: 0 },
   transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
 };`,
+    readme: `# Story Engine
+
+Story Engine is a reusable kit for immersive portfolio and campaign builds.
+
+## Core idea
+Package transitions, layout primitives, and media choreography into composable modules.
+
+## Why it matters
+It reduces one-off animation work and gives storytelling-heavy projects a shared system for motion, layout, and art direction.`,
     images: [],
+    customSections: [
+      {
+        id: "story-engine-design-system",
+        title: "Design system",
+        content:
+          "Built around reusable chapters, theme tokens, and motion presets so creative teams can compose pages without rebuilding the same presentation logic.",
+      },
+    ],
   },
   {
     id: "ops-lens",
@@ -278,7 +339,26 @@ const projects: ProjectData[] = [
     codeSnippet: `export function formatIncidentTitle(code: string, service: string) {
   return [code.toUpperCase(), service].join(" / ");
 }`,
+    readme: `# Ops Lens
+
+Ops Lens is a troubleshooting workspace for support and engineering teams working through active incidents.
+
+## Focus
+- Keep incident state readable at a glance
+- Preserve timeline clarity during handoffs
+- Combine system health, notes, and context in one workspace
+
+## Build notes
+The design favors calm density: enough information to act, without overwhelming the operator.`,
     images: [],
+    customSections: [
+      {
+        id: "ops-lens-incident-flow",
+        title: "Incident flow",
+        content:
+          "The main workflow covers triage, timeline reconstruction, escalation notes, and final handoff so operators do not lose context between shifts.",
+      },
+    ],
   },
 ];
 
@@ -333,6 +413,7 @@ const footer: FooterData = {
 
 export const defaultPortfolioData: PortfolioData = {
   profile,
+  timeline,
   education,
   projects,
   contact,
@@ -363,16 +444,26 @@ export function mergePortfolioData(partial?: Partial<PortfolioData>): PortfolioD
       heroActions: partial.profile?.heroActions ?? base.profile.heroActions,
       socialLinks: partial.profile?.socialLinks ?? base.profile.socialLinks,
     },
+    timeline: {
+      ...base.timeline,
+      ...partial.timeline,
+    },
     education: (partial.education ?? base.education).map((item, index) => ({
       ...base.education[index % base.education.length],
       ...item,
       order: item.order ?? index,
     })),
-    projects: (partial.projects ?? base.projects).map((item, index) => ({
-      ...base.projects[index % base.projects.length],
-      ...item,
-      order: item.order ?? index,
-    })),
+    projects: (partial.projects ?? base.projects).map((item, index) => {
+      const baseProject = base.projects[index % base.projects.length];
+
+      return {
+        ...baseProject,
+        ...item,
+        order: item.order ?? index,
+        readme: item.readme ?? item.description ?? "",
+        customSections: item.customSections ?? [],
+      };
+    }),
     contact: {
       ...base.contact,
       ...partial.contact,

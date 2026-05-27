@@ -109,10 +109,10 @@ export default function Desktop() {
               ) : null}
             </div>
             <h2 className="section-title max-w-3xl font-semibold text-[color:var(--text)]">
-              Project work presented in an interactive desktop workspace.
+              Project work presented as a friendlier explorer-style workspace.
             </h2>
             <p className="section-copy max-w-2xl">
-              Open any project to inspect its details, structure, and notes inside the editor-style window.
+              Open any project to move through overview, screenshots, tech stack, links, README notes, and custom sections from one desktop window.
             </p>
           </div>
         </div>

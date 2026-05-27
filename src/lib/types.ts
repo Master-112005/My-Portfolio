@@ -19,6 +19,11 @@ export type SkillGroup = {
   items: string[];
 };
 
+export type TimelineSectionData = {
+  title: string;
+  description: string;
+};
+
 export type IdCardData = {
   serialNumber: string;
   primaryName: string;
@@ -63,6 +68,12 @@ export type ProjectImage = {
   caption: string;
 };
 
+export type ProjectCustomSection = {
+  id: string;
+  title: string;
+  content: string;
+};
+
 export type ProjectData = {
   id: string;
   order: number;
@@ -78,7 +89,9 @@ export type ProjectData = {
   status: string;
   fileTree: string[];
   codeSnippet: string;
+  readme: string;
   images: ProjectImage[];
+  customSections: ProjectCustomSection[];
 };
 
 export type ContactData = {
@@ -100,6 +113,7 @@ export type FooterData = {
 
 export type PortfolioData = {
   profile: ProfileData;
+  timeline: TimelineSectionData;
   education: EducationItem[];
   projects: ProjectData[];
   contact: ContactData;
@@ -108,9 +122,12 @@ export type PortfolioData = {
 
 export type EditableSection =
   | "profile"
+  | "skills"
+  | "timeline"
   | "education"
   | "projects"
   | "contact"
+  | "mailer"
   | "footer";
 
 export type EditorState =
@@ -124,4 +141,28 @@ export type ContactMessageInput = {
   name: string;
   email: string;
   message: string;
+};
+
+export type ContactMailerSettings = {
+  canPersist: boolean;
+  fromEmail: string;
+  fromName: string;
+  hasPassword: boolean;
+  smtpHost: string;
+  smtpPort: string;
+  smtpSecure: boolean;
+  smtpUser: string;
+  source: "env" | "firestore";
+  toEmail: string;
+};
+
+export type ContactMailerSettingsInput = {
+  fromEmail: string;
+  fromName: string;
+  smtpHost: string;
+  smtpPass?: string;
+  smtpPort: string;
+  smtpSecure: boolean;
+  smtpUser: string;
+  toEmail: string;
 };

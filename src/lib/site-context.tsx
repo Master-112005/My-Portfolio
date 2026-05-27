@@ -20,6 +20,7 @@ import type {
   PortfolioData,
   ProfileData,
   ProjectData,
+  TimelineSectionData,
 } from "@/lib/types";
 
 type SiteDataContextValue = {
@@ -29,6 +30,7 @@ type SiteDataContextValue = {
   saveError: string | null;
   refresh: () => Promise<void>;
   updateProfile: (profile: ProfileData) => Promise<void>;
+  updateTimeline: (timeline: TimelineSectionData) => Promise<void>;
   updateEducationItem: (item: EducationItem) => Promise<void>;
   appendEducationItem: () => Promise<EducationItem>;
   deleteEducationItem: (itemId: string) => Promise<void>;
@@ -71,7 +73,10 @@ function createProjectItem(order: number): ProjectData {
     status: "In progress",
     fileTree: ["app/page.tsx"],
     codeSnippet: "export const status = 'draft';",
+    readme:
+      "# Project README\n\nSummarize the goal, the approach, what was built, and anything worth highlighting for recruiters or clients.",
     images: [],
+    customSections: [],
   };
 }
 
@@ -87,13 +92,23 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
   }, [data]);
 
   const refresh = async () => {
-    const nextData = await loadPortfolioData();
+    try {
+      const nextData = await loadPortfolioData();
 
-    startTransition(() => {
-      setData(nextData);
-      setIsLoading(false);
-      setSaveError(null);
-    });
+      startTransition(() => {
+        setData(nextData);
+        setIsLoading(false);
+        setSaveError(null);
+      });
+    } catch (error) {
+      const fallbackData = createPortfolioDataClone();
+
+      startTransition(() => {
+        setData(fallbackData);
+        setIsLoading(false);
+        setSaveError(error instanceof Error ? error.message : "Failed to load portfolio data.");
+      });
+    }
   };
 
   useEffect(() => {
@@ -129,6 +144,13 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
       education: current.education
         .map((entry) => (entry.id === item.id ? item : entry))
         .sort((left, right) => left.order - right.order),
+    }));
+  };
+
+  const updateTimeline = async (timeline: TimelineSectionData) => {
+    await commit((current) => ({
+      ...current,
+      timeline,
     }));
   };
 
@@ -210,6 +232,7 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
         saveError,
         refresh,
         updateProfile,
+        updateTimeline,
         updateEducationItem,
         appendEducationItem,
         deleteEducationItem,

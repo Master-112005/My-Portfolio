@@ -1,73 +1,177 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
+import { mergePortfolioData } from "@/data/defaultData";
+import type {
+  ContactMailerSettings,
+  ContactMailerSettingsInput,
+  ContactMessageInput,
+  PortfolioData,
+} from "@/lib/types";
 
-import { createPortfolioDataClone, mergePortfolioData } from "@/data/defaultData";
-import { firestore, hasFirebaseConfig } from "@/lib/firebase";
-import type { ContactMessageInput, PortfolioData } from "@/lib/types";
+export type AdminSessionStatus = {
+  authenticated: boolean;
+  lockedUntil: number;
+  remainingAttempts: number;
+};
 
-const PORTFOLIO_COLLECTION = "portfolio";
-const PORTFOLIO_DOCUMENT_ID = "data";
+export type ApiRequestError = Error & {
+  lockedUntil?: number;
+  remainingAttempts?: number;
+  status?: number;
+};
 
-function createFirestoreConfigurationError() {
-  return new Error(
-    "Firebase Firestore is not configured. Add the required NEXT_PUBLIC_FIREBASE_* environment variables.",
-  );
-}
+type ContactMailerSettingsEnvelope = {
+  canPersist?: boolean;
+  error?: string;
+  fromEmail?: string;
+  fromName?: string;
+  hasPassword?: boolean;
+  smtpHost?: string;
+  smtpPort?: string;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  source?: "env" | "firestore";
+  toEmail?: string;
+};
 
-export async function loadPortfolioData() {
-  const db = firestore;
+type ApiEnvelope = {
+  authenticated?: boolean;
+  data?: Partial<PortfolioData>;
+  error?: string;
+  lockedUntil?: number;
+  ok?: boolean;
+  remainingAttempts?: number;
+};
 
-  if (!db || !hasFirebaseConfig) {
-    return createPortfolioDataClone();
+async function parseJsonResponse(response: Response) {
+  const text = await response.text();
+
+  if (!text) {
+    return {} as ApiEnvelope;
   }
 
   try {
-    const snapshot = await getDoc(doc(db, PORTFOLIO_COLLECTION, PORTFOLIO_DOCUMENT_ID));
-
-    if (!snapshot.exists()) {
-      const seededData = createPortfolioDataClone();
-      await savePortfolioData(seededData);
-      return seededData;
-    }
-
-    return mergePortfolioData(snapshot.data() as Partial<PortfolioData>);
+    return JSON.parse(text) as ApiEnvelope;
   } catch {
-    return createPortfolioDataClone();
+    return {} as ApiEnvelope;
   }
 }
 
-export async function savePortfolioData(data: PortfolioData) {
-  const db = firestore;
+async function requestApi<T extends ApiEnvelope>(input: string, init?: RequestInit) {
+  const response = await fetch(input, {
+    ...init,
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: {
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(init?.headers ?? {}),
+    },
+  });
+  const payload = await parseJsonResponse(response);
 
-  if (!db || !hasFirebaseConfig) {
-    throw createFirestoreConfigurationError();
+  if (!response.ok) {
+    const error = new Error(
+      payload.error || `Request to ${input} failed with status ${response.status}.`,
+    ) as ApiRequestError;
+
+    error.lockedUntil = payload.lockedUntil;
+    error.remainingAttempts = payload.remainingAttempts;
+    error.status = response.status;
+    throw error;
   }
 
-  await setDoc(doc(db, PORTFOLIO_COLLECTION, PORTFOLIO_DOCUMENT_ID), data, {
-    merge: false,
-  });
+  return payload as T;
+}
 
-  return data;
+export async function loadPortfolioData() {
+  const payload = await requestApi<{ data: Partial<PortfolioData> }>("/api/portfolio", {
+    method: "GET",
+  });
+  return mergePortfolioData(payload.data);
+}
+
+export async function savePortfolioData(data: PortfolioData) {
+  const payload = await requestApi<{ data: Partial<PortfolioData> }>("/api/portfolio", {
+    body: JSON.stringify({ data }),
+    method: "PUT",
+  });
+  return mergePortfolioData(payload.data);
 }
 
 export const loadPortfolio = loadPortfolioData;
 export const savePortfolio = savePortfolioData;
 
 export async function submitContactMessage(message: ContactMessageInput) {
-  const db = firestore;
-
-  if (!db || !hasFirebaseConfig) {
-    throw createFirestoreConfigurationError();
-  }
-
-  await addDoc(collection(db, "contact_messages"), {
-    ...message,
-    createdAt: serverTimestamp(),
+  await requestApi<{ ok: boolean }>("/api/contact", {
+    body: JSON.stringify(message),
+    method: "POST",
   });
+}
+
+export async function loadAdminSessionStatus() {
+  const payload = await requestApi<AdminSessionStatus>("/api/admin/session", {
+    method: "GET",
+  });
+
+  return {
+    authenticated: payload.authenticated ?? false,
+    lockedUntil: payload.lockedUntil ?? 0,
+    remainingAttempts: payload.remainingAttempts ?? 0,
+  };
+}
+
+export async function unlockAdminSession(password: string) {
+  const payload = await requestApi<AdminSessionStatus>("/api/admin/session", {
+    body: JSON.stringify({ password }),
+    method: "POST",
+  });
+
+  return {
+    authenticated: payload.authenticated ?? false,
+    lockedUntil: payload.lockedUntil ?? 0,
+    remainingAttempts: payload.remainingAttempts ?? 0,
+  };
+}
+
+export async function clearAdminSession() {
+  await requestApi<{ ok: boolean }>("/api/admin/session", {
+    method: "DELETE",
+  });
+}
+
+export async function loadContactMailerSettings() {
+  const payload = await requestApi<ContactMailerSettingsEnvelope>("/api/admin/contact-settings", {
+    method: "GET",
+  });
+
+  return {
+    canPersist: payload.canPersist ?? false,
+    fromEmail: payload.fromEmail ?? "",
+    fromName: payload.fromName ?? "",
+    hasPassword: payload.hasPassword ?? false,
+    smtpHost: payload.smtpHost ?? "",
+    smtpPort: payload.smtpPort ?? "",
+    smtpSecure: payload.smtpSecure ?? false,
+    smtpUser: payload.smtpUser ?? "",
+    source: payload.source ?? "env",
+    toEmail: payload.toEmail ?? "",
+  } satisfies ContactMailerSettings;
+}
+
+export async function saveContactMailerSettings(settings: ContactMailerSettingsInput) {
+  const payload = await requestApi<ContactMailerSettingsEnvelope>("/api/admin/contact-settings", {
+    body: JSON.stringify(settings),
+    method: "PUT",
+  });
+
+  return {
+    canPersist: payload.canPersist ?? false,
+    fromEmail: payload.fromEmail ?? "",
+    fromName: payload.fromName ?? "",
+    hasPassword: payload.hasPassword ?? false,
+    smtpHost: payload.smtpHost ?? "",
+    smtpPort: payload.smtpPort ?? "",
+    smtpSecure: payload.smtpSecure ?? false,
+    smtpUser: payload.smtpUser ?? "",
+    source: payload.source ?? "env",
+    toEmail: payload.toEmail ?? "",
+  } satisfies ContactMailerSettings;
 }

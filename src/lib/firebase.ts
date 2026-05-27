@@ -1,7 +1,7 @@
-import { getApp, getApps, initializeApp, type FirebaseOptions } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getApp, getApps, initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
+import { getFirestore, type Firestore } from "firebase/firestore/lite";
 
-const firebaseConfig = {
+export const firebasePublicConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim(),
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN?.trim(),
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim(),
@@ -10,14 +10,35 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID?.trim(),
 };
 
-export const hasFirebaseConfig = Object.values(firebaseConfig).every(
+export const hasFirebaseConfig = Object.values(firebasePublicConfig).every(
   (value) => typeof value === "string" && value.length > 0,
 );
 
-const app = hasFirebaseConfig
-  ? getApps().length
-    ? getApp()
-    : initializeApp(firebaseConfig as FirebaseOptions)
-  : null;
+let publicApp: FirebaseApp | null = null;
+let publicFirestore: Firestore | null = null;
 
-export const firestore = app ? getFirestore(app) : null;
+export function getPublicFirebaseApp() {
+  if (!hasFirebaseConfig) {
+    return null;
+  }
+
+  if (publicApp) {
+    return publicApp;
+  }
+
+  publicApp = getApps().length
+    ? getApp()
+    : initializeApp(firebasePublicConfig as FirebaseOptions);
+
+  return publicApp;
+}
+
+export function getPublicFirestore() {
+  if (publicFirestore) {
+    return publicFirestore;
+  }
+
+  const app = getPublicFirebaseApp();
+  publicFirestore = app ? getFirestore(app) : null;
+  return publicFirestore;
+}

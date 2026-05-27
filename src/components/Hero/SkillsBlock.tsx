@@ -10,7 +10,17 @@ type SkillsBlockProps = {
 };
 
 export default function SkillsBlock({ groups }: SkillsBlockProps) {
-  if (!groups.length) {
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      accent: group.accent.trim() || "var(--accent)",
+      items: group.items.map((item) => item.trim()).filter(Boolean),
+      marker: group.marker.trim(),
+      title: group.title.trim(),
+    }))
+    .filter((group) => group.title || group.marker || group.items.length);
+
+  if (!visibleGroups.length) {
     return null;
   }
 
@@ -25,7 +35,7 @@ export default function SkillsBlock({ groups }: SkillsBlockProps) {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <span className="eyebrow">Skills block</span>
-              <EditButton section="profile" label="Edit skills" />
+              <EditButton section="skills" label="Edit skills" />
             </div>
             <h2 className="text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text)] sm:text-4xl">Skills</h2>
           </div>
@@ -35,7 +45,7 @@ export default function SkillsBlock({ groups }: SkillsBlockProps) {
         </div>
 
         <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {groups.map((group, index) => (
+          {visibleGroups.map((group, index) => (
             <motion.article
               key={`${group.title}-${index}`}
               initial={{ opacity: 0, y: 16 }}
@@ -55,40 +65,46 @@ export default function SkillsBlock({ groups }: SkillsBlockProps) {
 
               <div className="relative space-y-5">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-11 w-11 items-center justify-center rounded-[1rem] border font-mono text-sm font-semibold uppercase tracking-[0.22em]"
-                    style={{
-                      borderColor: `${group.accent}55`,
-                      backgroundColor: `${group.accent}12`,
-                      color: group.accent,
-                    }}
-                  >
-                    {group.marker}
-                  </div>
+                  {group.marker ? (
+                    <div
+                      className="flex h-11 w-11 items-center justify-center rounded-[1rem] border font-mono text-sm font-semibold uppercase tracking-[0.22em]"
+                      style={{
+                        borderColor: `color-mix(in srgb, ${group.accent} 34%, transparent)`,
+                        backgroundColor: `color-mix(in srgb, ${group.accent} 12%, transparent)`,
+                        color: group.accent,
+                      }}
+                    >
+                      {group.marker}
+                    </div>
+                  ) : null}
                   <div>
                     <p className="font-mono text-[0.68rem] uppercase tracking-[0.26em] text-[color:var(--text-soft)]">
                       Skill cluster
                     </p>
-                    <h3 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text)]">
-                      {group.title}
-                    </h3>
+                    {group.title ? (
+                      <h3 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text)]">
+                        {group.title}
+                      </h3>
+                    ) : null}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2.5">
-                  {group.items.map((item) => (
-                    <span
-                      key={`${group.title}-${item}`}
-                      className="rounded-[0.95rem] border px-3 py-2 font-mono text-sm tracking-[0.02em] text-[color:var(--text)]"
-                      style={{
-                        borderColor: `${group.accent}24`,
-                        backgroundColor: `${group.accent}14`,
-                      }}
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
+                {group.items.length ? (
+                  <div className="flex flex-wrap gap-2.5">
+                    {group.items.map((item) => (
+                      <span
+                        key={`${group.title}-${item}`}
+                        className="rounded-[0.95rem] border px-3 py-2 font-mono text-sm tracking-[0.02em] text-[color:var(--text)]"
+                        style={{
+                          borderColor: `color-mix(in srgb, ${group.accent} 20%, transparent)`,
+                          backgroundColor: `color-mix(in srgb, ${group.accent} 14%, transparent)`,
+                        }}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </motion.article>
           ))}

@@ -8,6 +8,10 @@ import { useSiteData } from "@/lib/site-context";
 export default function Footer() {
   const { data } = useSiteData();
   const { footer } = data;
+  const links = footer.links.filter((link) => link.label.trim() && link.href.trim());
+  const note = footer.note.trim();
+  const quote = footer.quote.trim();
+  const copyrightLabel = footer.copyrightLabel.trim();
 
   return (
     <footer className="section-shell">
@@ -18,15 +22,17 @@ export default function Footer() {
               <span className="eyebrow">Footer</span>
               <EditButton section="footer" label="Edit footer" />
             </div>
-            <blockquote className="max-w-2xl text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text)]">
-              "{footer.quote}"
-            </blockquote>
-            <p className="max-w-2xl text-sm leading-7 text-[color:var(--text-soft)]">{footer.note}</p>
+            {quote ? (
+              <blockquote className="max-w-2xl text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text)]">
+                "{quote}"
+              </blockquote>
+            ) : null}
+            {note ? <p className="max-w-2xl text-sm leading-7 text-[color:var(--text-soft)]">{note}</p> : null}
           </div>
 
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3">
-              {footer.links.map((link) => (
+              {links.map((link) => (
                 <Link
                   key={`${link.label}-${link.href}`}
                   href={link.href}
@@ -36,9 +42,11 @@ export default function Footer() {
                 </Link>
               ))}
             </div>
-            <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
-              {footer.copyrightLabel}
-            </p>
+            {copyrightLabel ? (
+              <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                {copyrightLabel}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

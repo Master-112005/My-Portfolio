@@ -2,8 +2,8 @@
 
 import { createContext, type PropsWithChildren, useContext, useEffect, useState } from "react";
 
+import { clearAdminSession, loadAdminSessionStatus } from "@/lib/api";
 import type { EditableSection, EditorState } from "@/lib/types";
-import { deleteCookie, readCookie, writeCookie } from "@/utils/cookies";
 
 type EditModeContextValue = {
   isEditMode: boolean;
@@ -12,12 +12,10 @@ type EditModeContextValue = {
   requestUnlock: () => void;
   closeUnlock: () => void;
   enableEditMode: () => void;
-  disableEditMode: () => void;
+  disableEditMode: () => Promise<void>;
   openEditor: (section: EditableSection, itemId?: string | null) => void;
   closeEditor: () => void;
 };
-
-const EDIT_MODE_COOKIE_KEY = "interactive-storytelling-portfolio-edit-mode";
 
 const EditModeContext = createContext<EditModeContextValue | null>(null);
 
@@ -27,19 +25,41 @@ export function EditModeProvider({ children }: PropsWithChildren) {
   const [editor, setEditor] = useState<EditorState>(null);
 
   useEffect(() => {
-    setIsEditMode(readCookie(EDIT_MODE_COOKIE_KEY) === "enabled");
+    let isActive = true;
+
+    void loadAdminSessionStatus()
+      .then((status) => {
+        if (!isActive) {
+          return;
+        }
+
+        setIsEditMode(status.authenticated);
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setIsEditMode(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const enableEditMode = () => {
     setIsEditMode(true);
     setIsUnlockOpen(false);
-    writeCookie(EDIT_MODE_COOKIE_KEY, "enabled");
   };
 
-  const disableEditMode = () => {
-    setIsEditMode(false);
-    setEditor(null);
-    deleteCookie(EDIT_MODE_COOKIE_KEY);
+  const disableEditMode = async () => {
+    try {
+      await clearAdminSession();
+    } finally {
+      setIsEditMode(false);
+      setEditor(null);
+    }
   };
 
   return (

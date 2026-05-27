@@ -29,17 +29,15 @@ export default function IDCard({ profile }: IDCardProps) {
   });
   const [isFlipped, setIsFlipped] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const serialNumber = profile.idCard.serialNumber.trim() || "31522";
-  const primaryName = profile.idCard.primaryName.trim() || profile.name;
-  const secondaryName = profile.idCard.secondaryName.trim() || profile.name;
-  const roleLines = profile.idCard.frontRoleLines.length ? profile.idCard.frontRoleLines : [profile.role];
-  const backTitle = profile.idCard.backTitle.trim() || "Owner links";
-  const imageSrc = profile.profileImageSrc || "/images/profile.jpg";
+  const serialNumber = profile.idCard.serialNumber.trim();
+  const primaryName = profile.idCard.primaryName.trim();
+  const secondaryName = profile.idCard.secondaryName.trim();
+  const roleLines = profile.idCard.frontRoleLines.map((line) => line.trim()).filter(Boolean);
+  const backTitle = profile.idCard.backTitle.trim();
+  const imageSrc = profile.profileImageSrc.trim();
   const isInlineImage = imageSrc.startsWith("data:");
-  const backDescription =
-    profile.idCard.backDescription.trim() ||
-    "Hover for sway, move the pointer for tilt, and pull the badge down to unlock owner controls.";
-  const backFooter = profile.idCard.backFooter.trim() || "Release to let the badge settle back into place.";
+  const backDescription = profile.idCard.backDescription.trim();
+  const backFooter = profile.idCard.backFooter.trim();
 
   const pullY = useMotionValue(0);
   const swingDegrees = useMotionValue(0);
@@ -258,8 +256,12 @@ export default function IDCard({ profile }: IDCardProps) {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),transparent_48%)]" />
                 <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.48),transparent_36%,rgba(0,0,0,0.06)_78%,rgba(255,255,255,0.18))]" />
                 <div className="absolute left-1/2 top-0 h-[4.9rem] w-[2px] -translate-x-1/2 bg-[linear-gradient(180deg,rgba(9,9,9,0.72),rgba(9,9,9,0.08))]" />
-                <div className="absolute right-5 top-5 font-mono text-[0.8rem] tracking-[0.26em] text-black/52"># {serialNumber}</div>
-                <div className="absolute right-4 top-[3.95rem] h-px w-24 bg-black/26" />
+                {serialNumber ? (
+                  <>
+                    <div className="absolute right-5 top-5 font-mono text-[0.8rem] tracking-[0.26em] text-black/52"># {serialNumber}</div>
+                    <div className="absolute right-4 top-[3.95rem] h-px w-24 bg-black/26" />
+                  </>
+                ) : null}
 
                 <div className="absolute left-[3.6rem] top-[3.2rem] h-28 w-px rotate-[38deg] bg-black/38" />
                 <div className="absolute left-[12.4rem] top-[3.4rem] h-20 w-px rotate-[38deg] bg-black/32" />
@@ -267,44 +269,52 @@ export default function IDCard({ profile }: IDCardProps) {
 
                 <div className="relative flex h-full flex-col px-6 py-5">
                   <div className="relative z-10 pt-6">
-                    <p
-                      className="text-[4.45rem] leading-[0.72] tracking-[-0.08em] text-black/82 sm:text-[4.8rem]"
-                      style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
-                    >
-                      {primaryName}
-                    </p>
-                    <p
-                      className="ml-[5.5rem] mt-8 text-[4.8rem] leading-[0.72] tracking-[-0.08em] text-black/78 sm:text-[5rem]"
-                      style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
-                    >
-                      {secondaryName}
-                    </p>
+                    {primaryName ? (
+                      <p
+                        className="text-[4.45rem] leading-[0.72] tracking-[-0.08em] text-black/82 sm:text-[4.8rem]"
+                        style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
+                      >
+                        {primaryName}
+                      </p>
+                    ) : null}
+                    {secondaryName ? (
+                      <p
+                        className="ml-[5.5rem] mt-8 text-[4.8rem] leading-[0.72] tracking-[-0.08em] text-black/78 sm:text-[5rem]"
+                        style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}
+                      >
+                        {secondaryName}
+                      </p>
+                    ) : null}
                   </div>
 
-                  <div className="absolute bottom-0 left-0 z-0 h-[74%] w-[68%] overflow-hidden rounded-br-[2rem]">
-                    <Image
-                      src={imageSrc}
-                      alt={profile.profileImageAlt || `${profile.name} profile photo`}
-                      fill
-                      priority
-                      sizes="(max-width: 640px) 280px, 320px"
-                      unoptimized={isInlineImage}
-                      className="object-cover object-left-top grayscale contrast-125 brightness-[0.92]"
-                    />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0)_22%,rgba(240,240,240,0.04)_36%,rgba(235,235,235,0.22)_100%)]" />
-                    <div className="absolute inset-y-0 right-0 w-14 bg-[linear-gradient(90deg,transparent,rgba(236,236,236,0.84))]" />
-                  </div>
+                  {imageSrc ? (
+                    <div className="absolute bottom-0 left-0 z-0 h-[74%] w-[68%] overflow-hidden rounded-br-[2rem]">
+                      <Image
+                        src={imageSrc}
+                        alt={profile.profileImageAlt}
+                        fill
+                        priority
+                        sizes="(max-width: 640px) 280px, 320px"
+                        unoptimized={isInlineImage}
+                        className="object-cover object-left-top grayscale contrast-125 brightness-[0.92]"
+                      />
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0)_22%,rgba(240,240,240,0.04)_36%,rgba(235,235,235,0.22)_100%)]" />
+                      <div className="absolute inset-y-0 right-0 w-14 bg-[linear-gradient(90deg,transparent,rgba(236,236,236,0.84))]" />
+                    </div>
+                  ) : null}
 
-                  <div className="relative z-10 mt-auto flex justify-end">
-                    <div className="w-[5.7rem] pr-1 text-right">
-                      <p className="font-mono text-[1.4rem] tracking-[0.38em] text-black/64">ID</p>
-                      <div className="mt-4 space-y-3 font-mono text-[1rem] uppercase tracking-[0.28em] text-black/68">
-                        {roleLines.map((line) => (
-                          <p key={line}>{line}</p>
-                        ))}
+                  {roleLines.length ? (
+                    <div className="relative z-10 mt-auto flex justify-end">
+                      <div className="w-[5.7rem] pr-1 text-right">
+                        <p className="font-mono text-[1.4rem] tracking-[0.38em] text-black/64">ID</p>
+                        <div className="mt-4 space-y-3 font-mono text-[1rem] uppercase tracking-[0.28em] text-black/68">
+                          {roleLines.map((line) => (
+                            <p key={line}>{line}</p>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -314,10 +324,16 @@ export default function IDCard({ profile }: IDCardProps) {
                 <div className="relative flex h-full flex-col">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-mono text-[0.72rem] uppercase tracking-[0.3em] text-black/46">{backTitle}</p>
-                      <h3 className="mt-3 text-[2.1rem] font-semibold tracking-[-0.06em] text-black/82">{profile.name}</h3>
+                      {backTitle ? (
+                        <p className="font-mono text-[0.72rem] uppercase tracking-[0.3em] text-black/46">{backTitle}</p>
+                      ) : null}
+                      {profile.name.trim() ? (
+                        <h3 className="mt-3 text-[2.1rem] font-semibold tracking-[-0.06em] text-black/82">{profile.name}</h3>
+                      ) : null}
                     </div>
-                    <div className="font-mono text-[0.8rem] tracking-[0.26em] text-black/52">#{serialNumber}</div>
+                    {serialNumber ? (
+                      <div className="font-mono text-[0.8rem] tracking-[0.26em] text-black/52">#{serialNumber}</div>
+                    ) : null}
                   </div>
 
                   <div className="mt-8 space-y-3">
@@ -341,14 +357,18 @@ export default function IDCard({ profile }: IDCardProps) {
                     ))}
                   </div>
 
-                  <div className="mt-8 rounded-[1.2rem] border border-black/10 bg-white/44 px-4 py-4">
-                    <p className="font-mono text-[0.68rem] uppercase tracking-[0.28em] text-black/44">Unlock gesture</p>
-                    <p className="mt-3 text-sm leading-6 text-black/66">{backDescription}</p>
-                  </div>
+                  {backDescription ? (
+                    <div className="mt-8 rounded-[1.2rem] border border-black/10 bg-white/44 px-4 py-4">
+                      <p className="font-mono text-[0.68rem] uppercase tracking-[0.28em] text-black/44">Unlock gesture</p>
+                      <p className="mt-3 text-sm leading-6 text-black/66">{backDescription}</p>
+                    </div>
+                  ) : null}
 
-                  <div className="mt-auto border-t border-black/10 pt-4 font-mono text-[0.72rem] uppercase tracking-[0.24em] text-black/42">
-                    {backFooter}
-                  </div>
+                  {backFooter ? (
+                    <div className="mt-auto border-t border-black/10 pt-4 font-mono text-[0.72rem] uppercase tracking-[0.24em] text-black/42">
+                      {backFooter}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </motion.div>

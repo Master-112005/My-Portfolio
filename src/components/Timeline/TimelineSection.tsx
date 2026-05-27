@@ -11,7 +11,7 @@ import { useElementScrollProgress } from "@/utils/scroll";
 export default function TimelineSection() {
   const { appendEducationItem, data } = useSiteData();
   const { isEditMode, openEditor } = useEditMode();
-  const { education } = data;
+  const { education, timeline } = data;
   const { ref, scrollYProgress } = useElementScrollProgress<HTMLElement>();
   const pathProgress = useMotionValue(0);
   const animationControlsRef = useRef<{ stop: () => void } | null>(null);
@@ -104,6 +104,7 @@ export default function TimelineSection() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <span className="eyebrow">Education journey</span>
+            <EditButton section="timeline" label="Edit journey copy" />
             <EditButton section="education" itemId={education[0]?.id} label="Edit stages" />
             {isEditMode ? (
               <button type="button" onClick={() => void handleAddStage()} className="edit-button">
@@ -112,12 +113,16 @@ export default function TimelineSection() {
               </button>
             ) : null}
           </div>
-          <h2 className="section-title max-w-4xl font-semibold text-[color:var(--text)]">
-            Education milestones arranged as a guided journey.
-          </h2>
-          <p className="section-copy max-w-2xl">
-            Open any milestone to read the details from each stage of the academic path.
-          </p>
+          {timeline.title.trim() ? (
+            <h2 className="section-title max-w-4xl font-semibold text-[color:var(--text)]">
+              {timeline.title}
+            </h2>
+          ) : null}
+          {timeline.description.trim() ? (
+            <p className="section-copy max-w-2xl">
+              {timeline.description}
+            </p>
+          ) : null}
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full border border-[color:var(--line)] bg-[color:var(--surface)]/56 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-[color:var(--text-soft)]">
               Education Path

@@ -7,6 +7,21 @@ import type { ProjectData } from "@/lib/types";
 
 type WindowMode = "normal" | "maximized" | "minimized";
 
+type ExplorerSection =
+  | {
+      id: "overview" | "gallery" | "stack" | "readme";
+      label: string;
+      meta: string;
+      kind: "overview" | "gallery" | "stack" | "readme";
+    }
+  | {
+      id: string;
+      label: string;
+      meta: string;
+      kind: "custom";
+      content: string;
+    };
+
 type VSCodeWindowProps = {
   mode: WindowMode;
   onClose: () => void;
@@ -45,13 +60,72 @@ export default function VSCodeWindow({
   project,
 }: VSCodeWindowProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [activeSectionId, setActiveSectionId] = useState<ExplorerSection["id"]>("overview");
+  const accent = project.accent.trim() || "var(--accent)";
+  const name = project.name.trim();
+  const tagline = project.tagline.trim();
+  const description = project.description.trim();
+  const repoHref = project.repoHref.trim();
+  const liveHref = project.liveHref.trim();
+  const status = project.status.trim();
+  const readme = project.readme.trim();
+  const stack = project.stack.map((item) => item.trim()).filter(Boolean);
+  const features = project.features.map((feature) => feature.trim()).filter(Boolean);
+  const fileTree = project.fileTree.map((file) => file.trim()).filter(Boolean);
+  const codeSnippet = project.codeSnippet.trim();
+  const images = project.images.filter((image) => image.src.trim());
+  const customSections = project.customSections
+    .map((section) => ({
+      id: section.id.trim(),
+      title: section.title.trim(),
+      content: section.content.trim(),
+    }))
+    .filter((section) => section.id && section.title && section.content);
 
   useEffect(() => {
     setActiveImageIndex(0);
+    setActiveSectionId("overview");
   }, [project.id]);
 
-  const clampedImageIndex = Math.min(activeImageIndex, Math.max(0, project.images.length - 1));
-  const activeImage = project.images[clampedImageIndex] ?? null;
+  const sections: ExplorerSection[] = [
+    {
+      id: "overview",
+      label: "Overview",
+      meta: features.length ? `${features.length} highlights` : "Summary",
+      kind: "overview",
+    },
+    {
+      id: "gallery",
+      label: "Project pics",
+      meta: images.length ? `${images.length} screenshots` : "No screenshots yet",
+      kind: "gallery",
+    },
+    {
+      id: "stack",
+      label: "Tech stack + links",
+      meta: stack.length ? `${stack.length} tools listed` : "Stack and URLs",
+      kind: "stack",
+    },
+    {
+      id: "readme",
+      label: "README",
+      meta: readme ? "Project notes" : "Add project notes",
+      kind: "readme",
+    },
+    ...customSections.map(
+      (section): ExplorerSection => ({
+        id: section.id,
+        label: section.title,
+        meta: "Custom section",
+        kind: "custom",
+        content: section.content,
+      }),
+    ),
+  ];
+
+  const activeSection = sections.find((section) => section.id === activeSectionId) ?? sections[0];
+  const clampedImageIndex = Math.min(activeImageIndex, Math.max(0, images.length - 1));
+  const activeImage = images[clampedImageIndex] ?? null;
   const shellClassName =
     mode === "maximized"
       ? "inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)]"
@@ -82,9 +156,9 @@ export default function VSCodeWindow({
 
           <div className="flex items-center gap-3 text-xs text-slate-400">
             <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono uppercase tracking-[0.22em]">
-              {mode === "maximized" ? "Fullscreen" : mode === "minimized" ? "Minimized" : "Editor"}
+              {mode === "maximized" ? "Fullscreen" : mode === "minimized" ? "Minimized" : "Explorer"}
             </span>
-            <span className="truncate">{project.name}.workspace</span>
+            <span className="truncate">{name ? `${name}.workspace` : ""}</span>
           </div>
         </div>
 
@@ -95,7 +169,7 @@ export default function VSCodeWindow({
             className="flex flex-1 items-center justify-between px-4 text-left text-sm text-slate-300 transition hover:bg-white/5"
           >
             <div>
-              <p className="font-semibold text-slate-100">{project.name}</p>
+              {name ? <p className="font-semibold text-slate-100">{name}</p> : null}
               <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Click to restore window</p>
             </div>
             <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em]">
@@ -103,182 +177,365 @@ export default function VSCodeWindow({
             </span>
           </button>
         ) : (
-          <div className="grid min-h-0 flex-1 md:grid-cols-[16rem_1fr]">
+          <div className="grid min-h-0 flex-1 md:grid-cols-[17rem_1fr]">
             <aside className="flex min-h-0 flex-col border-r border-slate-700/60 bg-[#111827] px-4 py-4">
-              <div className="min-h-0 flex-1">
-                <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Explorer</p>
-                <div className="space-y-2 overflow-y-auto pr-1">
-                  {project.fileTree.map((file) => {
-                    const depth = file.split("/").length - 1;
-
-                    return (
-                      <div
-                        key={file}
-                        className="rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5"
-                        style={{ paddingLeft: `${0.75 + depth * 0.7}rem` }}
-                      >
-                        {file.split("/").at(-1)}
-                      </div>
-                    );
-                  })}
+              <div className="rounded-[1.35rem] border border-slate-700/70 bg-white/5 p-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Explorer</p>
+                {name ? <h3 className="mt-3 text-lg font-semibold text-white">{name}</h3> : null}
+                {tagline ? <p className="mt-2 text-sm leading-6 text-slate-400">{tagline}</p> : null}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {status ? (
+                    <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-300">
+                      {status}
+                    </span>
+                  ) : null}
+                  <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                    {sections.length} views
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-6 border-t border-slate-700/60 pt-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Overview</p>
+              <nav className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1" aria-label="Project explorer sections">
+                <div className="space-y-2">
+                  {sections.map((section, index) => {
+                    const isActive = section.id === activeSection.id;
 
-                {project.images.length ? (
-                  <div className="mt-4 max-h-[17rem] space-y-3 overflow-y-auto pr-1">
-                    {project.images.map((image, index) => (
+                    return (
                       <button
-                        key={image.id}
+                        key={section.id}
                         type="button"
-                        onClick={() => setActiveImageIndex(index)}
-                        className={`w-full overflow-hidden rounded-[1.1rem] border text-left transition ${
-                          clampedImageIndex === index
-                            ? "border-cyan-300/60 bg-cyan-300/8"
-                            : "border-slate-700/70 bg-white/5 hover:bg-white/8"
+                        onClick={() => setActiveSectionId(section.id)}
+                        className={`w-full rounded-[1.1rem] border px-3 py-3 text-left transition ${
+                          isActive
+                            ? "border-slate-400/60 bg-white/9 text-white"
+                            : "border-slate-700/60 bg-transparent text-slate-300 hover:bg-white/5"
                         }`}
+                        style={
+                          isActive
+                            ? {
+                                borderColor: `color-mix(in srgb, ${accent} 48%, rgba(148, 163, 184, 0.4))`,
+                                background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 14%, transparent), rgba(255,255,255,0.04))`,
+                              }
+                            : undefined
+                        }
                       >
-                        <div className="aspect-[16/10] overflow-hidden bg-[#0a101a]">
-                          <img
-                            src={image.src}
-                            alt={image.alt}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium">{section.label}</span>
+                          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
                         </div>
-                        <div className="px-3 py-3">
-                          <p className="line-clamp-1 text-sm font-medium text-slate-100">
-                            {image.caption || `Project view ${index + 1}`}
-                          </p>
-                          <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-500">
-                            Screenshot {String(index + 1).padStart(2, "0")}
-                          </p>
-                        </div>
+                        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{section.meta}</p>
                       </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-4 rounded-[1.15rem] border border-dashed border-slate-700/70 bg-white/5 px-4 py-4 text-sm leading-6 text-slate-400">
-                    Upload one or more project images in edit mode to populate this overview gallery.
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
+              </nav>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-[1.1rem] border border-slate-700/70 bg-white/5 p-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Media</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{images.length}</p>
+                </div>
+                <div className="rounded-[1.1rem] border border-slate-700/70 bg-white/5 p-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Stack</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{stack.length}</p>
+                </div>
               </div>
             </aside>
 
             <div className="min-h-0 overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-slate-700/60 bg-[#172033] px-4 py-3">
+              <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 bg-[#172033]/95 px-4 py-3 backdrop-blur">
                 <div className="flex items-center gap-3">
                   <span className="rounded-full bg-white/6 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                    README.md
+                    Explorer
                   </span>
-                  <span className="text-sm text-slate-400">{project.tagline}</span>
+                  <span className="text-sm text-slate-300">{activeSection.label}</span>
                 </div>
-                <a
-                  href={project.liveHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full px-3 py-1 text-xs font-semibold text-slate-950"
-                  style={{ backgroundColor: project.accent }}
-                >
-                  Open Live
-                </a>
+
+                <div className="flex flex-wrap gap-2">
+                  {repoHref ? (
+                    <a
+                      href={repoHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full border border-slate-700/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:bg-white/5"
+                    >
+                      Repo
+                    </a>
+                  ) : null}
+                  {liveHref ? (
+                    <a
+                      href={liveHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full px-3 py-1 text-xs font-semibold text-slate-950"
+                      style={{ backgroundColor: accent }}
+                    >
+                      Open Live
+                    </a>
+                  ) : null}
+                </div>
               </div>
 
-              <div className="grid gap-6 px-5 py-5 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="space-y-6">
-                  <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Overview</p>
-                    <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">{project.name}</h3>
-                    <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">{project.description}</p>
-                  </div>
-
-                  {activeImage ? (
-                    <div className="overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#0a101a]">
-                      <div className="aspect-[16/10] overflow-hidden">
-                        <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-3">
-                        <div>
-                          <p className="text-sm font-medium text-slate-100">
-                            {activeImage.caption || activeImage.alt}
-                          </p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">
-                            Project overview image
-                          </p>
+              <div className="px-5 py-5">
+                {activeSection.kind === "overview" ? (
+                  <div className="space-y-6">
+                    <section className="rounded-[1.6rem] border border-slate-700/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="max-w-3xl">
+                          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Project overview</p>
+                          {name ? <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">{name}</h3> : null}
+                          {description ? <p className="mt-4 text-sm leading-7 text-slate-300">{description}</p> : null}
                         </div>
-                        <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                          {clampedImageIndex + 1} / {project.images.length}
-                        </span>
+                        <div className="grid min-w-[12rem] gap-3 sm:grid-cols-3">
+                          <div className="rounded-[1.15rem] border border-slate-700/70 bg-white/5 p-3">
+                            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Features</p>
+                            <p className="mt-2 text-2xl font-semibold text-white">{features.length}</p>
+                          </div>
+                          <div className="rounded-[1.15rem] border border-slate-700/70 bg-white/5 p-3">
+                            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Screens</p>
+                            <p className="mt-2 text-2xl font-semibold text-white">{images.length}</p>
+                          </div>
+                          <div className="rounded-[1.15rem] border border-slate-700/70 bg-white/5 p-3">
+                            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Stack</p>
+                            <p className="mt-2 text-2xl font-semibold text-white">{stack.length}</p>
+                          </div>
+                        </div>
                       </div>
+                    </section>
+
+                    <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+                      <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Key highlights</p>
+                        {features.length ? (
+                          <ul className="mt-4 space-y-3">
+                            {features.map((feature) => (
+                              <li key={feature} className="flex gap-3 text-sm leading-7 text-slate-300">
+                                <span className="mt-2 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent }} />
+                                <span>{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-4 text-sm leading-7 text-slate-400">Add project highlights in edit mode.</p>
+                        )}
+                      </section>
+
+                      <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Project structure</p>
+                        {fileTree.length ? (
+                          <div className="mt-4 space-y-2">
+                            {fileTree.map((file) => {
+                              const depth = file.split("/").length - 1;
+
+                              return (
+                                <div
+                                  key={file}
+                                  className="rounded-[0.95rem] border border-slate-700/60 bg-[#0b1220] px-3 py-2 text-sm text-slate-300"
+                                  style={{ paddingLeft: `${0.9 + depth * 0.7}rem` }}
+                                >
+                                  {file}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="mt-4 text-sm leading-7 text-slate-400">Add important files or folders to show the project structure.</p>
+                        )}
+                      </section>
                     </div>
-                  ) : null}
 
-                  <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Key features</p>
-                    <ul className="mt-4 space-y-3">
-                      {project.features.map((feature) => (
-                        <li key={feature} className="flex gap-3 text-sm leading-7 text-slate-300">
-                          <span className="mt-2 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: project.accent }} />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {activeImage ? (
+                      <section className="overflow-hidden rounded-[1.55rem] border border-slate-700/70 bg-[#0a101a]">
+                        <div className="aspect-[16/9] overflow-hidden">
+                          <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-slate-100">
+                              {activeImage.caption.trim() || activeImage.alt.trim() || "Project preview"}
+                            </p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">Featured screenshot</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setActiveSectionId("gallery")}
+                            className="rounded-full border border-slate-700/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:bg-white/5"
+                          >
+                            Open pictures
+                          </button>
+                        </div>
+                      </section>
+                    ) : null}
                   </div>
+                ) : null}
 
-                  <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Code excerpt</p>
-                    <pre className="mt-4 overflow-x-auto rounded-[1.25rem] border border-slate-700/70 bg-[#0a101a] p-4 text-sm leading-7 text-cyan-100">
-                      <code>{project.codeSnippet}</code>
-                    </pre>
-                  </div>
-                </div>
+                {activeSection.kind === "gallery" ? (
+                  images.length ? (
+                    <div className="space-y-5">
+                      {activeImage ? (
+                        <section className="overflow-hidden rounded-[1.55rem] border border-slate-700/70 bg-[#0a101a]">
+                          <div className="aspect-[16/9] overflow-hidden">
+                            <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-3">
+                            <div>
+                              <p className="text-sm font-medium text-slate-100">
+                                {activeImage.caption.trim() || activeImage.alt.trim() || "Project screenshot"}
+                              </p>
+                              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">
+                                Screenshot {clampedImageIndex + 1} of {images.length}
+                              </p>
+                            </div>
+                            <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                              Gallery
+                            </span>
+                          </div>
+                        </section>
+                      ) : null}
 
-                <div className="space-y-5">
-                  <div className="rounded-[1.4rem] border border-slate-700/70 bg-white/5 p-4">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Stack</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {project.stack.map((item) => (
-                        <span
-                          key={item}
-                          className="rounded-full border border-slate-600/60 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-200"
-                        >
-                          {item}
-                        </span>
-                      ))}
+                      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {images.map((image, index) => (
+                          <button
+                            key={image.id}
+                            type="button"
+                            onClick={() => setActiveImageIndex(index)}
+                            className={`overflow-hidden rounded-[1.25rem] border text-left transition ${
+                              clampedImageIndex === index
+                                ? "border-cyan-300/60 bg-cyan-300/8"
+                                : "border-slate-700/70 bg-white/5 hover:bg-white/8"
+                            }`}
+                          >
+                            <div className="aspect-[16/10] overflow-hidden bg-[#0a101a]">
+                              <img src={image.src} alt={image.alt} className="h-full w-full object-cover" loading="lazy" />
+                            </div>
+                            <div className="px-4 py-3">
+                              <p className="line-clamp-1 text-sm font-medium text-slate-100">
+                                {image.caption.trim() || image.alt.trim() || `Screenshot ${index + 1}`}
+                              </p>
+                              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                                Click to preview
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </section>
+                    </div>
+                  ) : (
+                    <section className="rounded-[1.5rem] border border-dashed border-slate-700/70 bg-white/5 px-5 py-8 text-sm leading-7 text-slate-400">
+                      Add one or more screenshots in edit mode to populate this pictures view.
+                    </section>
+                  )
+                ) : null}
+
+                {activeSection.kind === "stack" ? (
+                  <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+                    <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Tech stack</p>
+                      {stack.length ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {stack.map((item) => (
+                            <span
+                              key={item}
+                              className="rounded-full border border-slate-600/60 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-200"
+                            >
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-4 text-sm leading-7 text-slate-400">Add the project stack in edit mode.</p>
+                      )}
+
+                      {status ? (
+                        <div className="mt-6 rounded-[1.15rem] border border-slate-700/70 bg-[#0b1220] p-4">
+                          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">Status</p>
+                          <p className="mt-2 text-sm leading-7 text-slate-300">{status}</p>
+                        </div>
+                      ) : null}
+                    </section>
+
+                    <div className="space-y-6">
+                      <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Links</p>
+                        <div className="mt-4 space-y-3">
+                          {repoHref ? (
+                            <a
+                              href={repoHref}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center justify-between rounded-[1rem] border border-slate-700/70 px-4 py-3 text-sm text-slate-200 transition hover:bg-white/5"
+                            >
+                              <span>Repository</span>
+                              <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">Open</span>
+                            </a>
+                          ) : null}
+                          {liveHref ? (
+                            <a
+                              href={liveHref}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center justify-between rounded-[1rem] border border-slate-700/70 px-4 py-3 text-sm text-slate-200 transition hover:bg-white/5"
+                            >
+                              <span>Live preview</span>
+                              <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">Open</span>
+                            </a>
+                          ) : null}
+                          {!repoHref && !liveHref ? (
+                            <p className="text-sm leading-7 text-slate-400">Add repository or live links in edit mode.</p>
+                          ) : null}
+                        </div>
+                      </section>
+
+                      {fileTree.length ? (
+                        <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Important files</p>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {fileTree.map((file) => (
+                              <span
+                                key={file}
+                                className="rounded-full border border-slate-700/70 px-3 py-1 text-xs text-slate-300"
+                              >
+                                {file.split("/").at(-1)}
+                              </span>
+                            ))}
+                          </div>
+                        </section>
+                      ) : null}
                     </div>
                   </div>
+                ) : null}
 
-                  <div className="rounded-[1.4rem] border border-slate-700/70 bg-white/5 p-4">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Links</p>
-                    <div className="mt-4 space-y-3">
-                      <a
-                        href={project.repoHref}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-between rounded-[1rem] border border-slate-700/70 px-3 py-3 text-sm text-slate-200 transition hover:bg-white/5"
-                      >
-                        <span>Repository</span>
-                        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">Open</span>
-                      </a>
-                      <a
-                        href={project.liveHref}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-between rounded-[1rem] border border-slate-700/70 px-3 py-3 text-sm text-slate-200 transition hover:bg-white/5"
-                      >
-                        <span>Live preview</span>
-                        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">Open</span>
-                      </a>
-                    </div>
-                  </div>
+                {activeSection.kind === "readme" ? (
+                  <div className="space-y-6">
+                    <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">README.md</p>
+                      <article className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                        {readme || "Add a project README in edit mode to show the story, decisions, and implementation notes here."}
+                      </article>
+                    </section>
 
-                  <div className="rounded-[1.4rem] border border-slate-700/70 bg-white/5 p-4">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Status</p>
-                    <p className="mt-3 text-sm leading-7 text-slate-300">{project.status}</p>
+                    {codeSnippet ? (
+                      <section className="rounded-[1.5rem] border border-slate-700/70 bg-[#0a101a] p-5">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Implementation snippet</p>
+                        <pre className="mt-4 overflow-x-auto text-sm leading-7 text-cyan-100">
+                          <code>{codeSnippet}</code>
+                        </pre>
+                      </section>
+                    ) : null}
                   </div>
-                </div>
+                ) : null}
+
+                {activeSection.kind === "custom" ? (
+                  <section className="rounded-[1.5rem] border border-slate-700/70 bg-white/5 p-5">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">Custom section</p>
+                    <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">{activeSection.label}</h3>
+                    <article className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                      {activeSection.content}
+                    </article>
+                  </section>
+                ) : null}
               </div>
             </div>
           </div>

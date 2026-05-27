@@ -11,6 +11,12 @@ import { fadeUpVariant, staggerParentVariant } from "@/utils/animations";
 export default function HeroSection() {
   const { data } = useSiteData();
   const { profile } = data;
+  const heroActions = profile.heroActions.filter((action) => action.label.trim() && action.href.trim());
+  const heroMeta = [
+    { label: "Role", value: profile.role.trim() },
+    { label: "Location", value: profile.location.trim() },
+    { label: "Availability", value: profile.availability.trim() },
+  ].filter((item) => item.value);
 
   return (
     <section id="hero" className="section-shell pt-20 sm:pt-24">
@@ -46,16 +52,19 @@ export default function HeroSection() {
 
             <motion.div variants={fadeUpVariant} className="space-y-5">
               <h1 className="section-title max-w-3xl font-semibold text-[color:var(--text)]">
-                <span className="block">{profile.name}</span>
-                <span className="text-gradient">{profile.tagline}</span>
+                {profile.name.trim() ? <span className="block">{profile.name}</span> : null}
+                {profile.tagline.trim() ? <span className="text-gradient">{profile.tagline}</span> : null}
               </h1>
-              <p className="max-w-2xl text-lg leading-8 text-[color:var(--text-soft)] sm:text-xl">
-                {profile.intro}
-              </p>
+              {profile.intro.trim() ? (
+                <p className="max-w-2xl text-lg leading-8 text-[color:var(--text-soft)] sm:text-xl">
+                  {profile.intro}
+                </p>
+              ) : null}
             </motion.div>
 
-            <motion.div variants={fadeUpVariant} className="flex flex-wrap gap-3">
-              {profile.heroActions.map((action) => (
+            {heroActions.length ? (
+              <motion.div variants={fadeUpVariant} className="flex flex-wrap gap-3">
+                {heroActions.map((action) => (
                 <Link
                   key={`${action.label}-${action.href}`}
                   href={action.href}
@@ -67,26 +76,23 @@ export default function HeroSection() {
                 >
                   {action.label}
                 </Link>
-              ))}
-            </motion.div>
+                ))}
+              </motion.div>
+            ) : null}
 
-            <motion.div
-              variants={fadeUpVariant}
-              className="grid gap-4 rounded-[1.75rem] border border-[color:var(--line)] bg-[color:var(--surface)]/60 p-5 sm:grid-cols-3"
-            >
-              <div>
-                <p className="eyebrow">Role</p>
-                <p className="mt-2 text-base font-medium text-[color:var(--text)]">{profile.role}</p>
-              </div>
-              <div>
-                <p className="eyebrow">Location</p>
-                <p className="mt-2 text-base font-medium text-[color:var(--text)]">{profile.location}</p>
-              </div>
-              <div>
-                <p className="eyebrow">Availability</p>
-                <p className="mt-2 text-base font-medium text-[color:var(--text)]">{profile.availability}</p>
-              </div>
-            </motion.div>
+            {heroMeta.length ? (
+              <motion.div
+                variants={fadeUpVariant}
+                className="grid gap-4 rounded-[1.75rem] border border-[color:var(--line)] bg-[color:var(--surface)]/60 p-5 sm:grid-cols-3"
+              >
+                {heroMeta.map((item) => (
+                  <div key={item.label}>
+                    <p className="eyebrow">{item.label}</p>
+                    <p className="mt-2 text-base font-medium text-[color:var(--text)]">{item.value}</p>
+                  </div>
+                ))}
+              </motion.div>
+            ) : null}
           </motion.div>
 
           <div className="relative z-10 overflow-hidden rounded-[2.25rem] border border-black/8 bg-[#030508] px-4 py-8 shadow-[0_32px_80px_rgba(0,0,0,0.18)] sm:px-6">

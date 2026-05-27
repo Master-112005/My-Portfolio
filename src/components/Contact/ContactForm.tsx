@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { type FormEvent, useState } from "react";
 
-import { EditButton } from "@/admin/EditMode";
+import { EditButton, useEditMode } from "@/admin/EditMode";
 import { useSiteData } from "@/lib/site-context";
 
 type FormState = {
@@ -20,6 +20,13 @@ const initialFormState: FormState = {
 
 export default function ContactForm() {
   const { data, submitMessage } = useSiteData();
+  const { isEditMode, openEditor } = useEditMode();
+  const contactCards = [
+    { label: "Email", value: data.contact.email.trim() },
+    { label: "Phone", value: data.contact.phone.trim() },
+    { label: "Location", value: data.contact.location.trim() },
+    { label: "Response", value: data.contact.responseTime.trim() },
+  ].filter((item) => item.value);
   const [formState, setFormState] = useState<FormState>(initialFormState);
   const [formError, setFormError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<keyof FormState | null>(null);
@@ -75,32 +82,35 @@ export default function ContactForm() {
             <div className="flex flex-wrap items-center gap-3">
               <span className="eyebrow">Creative contact</span>
               <EditButton section="contact" label="Edit contact" />
+              {isEditMode ? (
+                <button type="button" onClick={() => openEditor("mailer")} className="edit-button">
+                  <span aria-hidden="true">+</span>
+                  <span>Edit mailer</span>
+                </button>
+              ) : null}
             </div>
-            <h2 className="section-title max-w-xl font-semibold text-[color:var(--text)]">
-              {data.contact.headline}
-            </h2>
+            {data.contact.headline.trim() ? (
+              <h2 className="section-title max-w-xl font-semibold text-[color:var(--text)]">
+                {data.contact.headline}
+              </h2>
+            ) : null}
             <p className="section-copy max-w-lg">
               If you have a role, project, or collaboration in mind, send a message and I will get back to you.
             </p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/70 p-4">
-                <p className="eyebrow">Email</p>
-                <p className="mt-3 text-base font-medium text-[color:var(--text)]">{data.contact.email}</p>
+            {contactCards.length ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {contactCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/70 p-4"
+                  >
+                    <p className="eyebrow">{card.label}</p>
+                    <p className="mt-3 text-base font-medium text-[color:var(--text)]">{card.value}</p>
+                  </div>
+                ))}
               </div>
-              <div className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/70 p-4">
-                <p className="eyebrow">Phone</p>
-                <p className="mt-3 text-base font-medium text-[color:var(--text)]">{data.contact.phone}</p>
-              </div>
-              <div className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/70 p-4">
-                <p className="eyebrow">Location</p>
-                <p className="mt-3 text-base font-medium text-[color:var(--text)]">{data.contact.location}</p>
-              </div>
-              <div className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/70 p-4">
-                <p className="eyebrow">Response</p>
-                <p className="mt-3 text-base font-medium text-[color:var(--text)]">{data.contact.responseTime}</p>
-              </div>
-            </div>
+            ) : null}
           </div>
 
           <motion.form
@@ -167,7 +177,7 @@ export default function ContactForm() {
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className={`text-sm ${formError ? "text-rose-400" : "text-[color:var(--text-soft)]"}`}>
-                {formError ?? (isSuccess ? "Message captured successfully." : data.contact.availability)}
+                {formError ?? (isSuccess ? "Message sent successfully." : data.contact.availability)}
               </div>
               <motion.button
                 whileTap={{ scale: 0.98 }}

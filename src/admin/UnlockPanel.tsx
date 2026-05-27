@@ -4,83 +4,54 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
 import { useEditMode } from "@/admin/EditMode";
-import { deleteCookie, readCookie, writeCookie } from "@/utils/cookies";
+import {
+  loadAdminSessionStatus,
+  type ApiRequestError,
+  unlockAdminSession,
+} from "@/lib/api";
 
-const DEFAULT_ADMIN_HASH = "ed2d4c4cfbe3a7d41aa1fbc0e93df82f4fbc1c82faec35a95a2907d956d5795e";
-const ADMIN_PASSWORD_HASH =
-  process.env.NEXT_PUBLIC_ADMIN_PASSWORD_HASH ?? DEFAULT_ADMIN_HASH;
-const LOCKOUT_COOKIE_KEY = "interactive-storytelling-portfolio-unlock-attempts";
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_WINDOW_MS = 5 * 60 * 1000;
-
-async function sha256(value: string) {
-  const encoded = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", encoded);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-type UnlockAttemptState = {
-  failedAttempts: number;
-  lockedUntil: number;
-};
-
-function readUnlockAttemptState(): UnlockAttemptState {
-  const rawValue = readCookie(LOCKOUT_COOKIE_KEY);
-
-  if (!rawValue) {
-    return {
-      failedAttempts: 0,
-      lockedUntil: 0,
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue) as Partial<UnlockAttemptState>;
-    return {
-      failedAttempts: parsed.failedAttempts ?? 0,
-      lockedUntil: parsed.lockedUntil ?? 0,
-    };
-  } catch {
-    return {
-      failedAttempts: 0,
-      lockedUntil: 0,
-    };
-  }
-}
-
-function persistUnlockAttemptState(state: UnlockAttemptState) {
-  if (state.failedAttempts === 0 && state.lockedUntil === 0) {
-    deleteCookie(LOCKOUT_COOKIE_KEY);
-    return;
-  }
-
-  const remainingLockoutSeconds =
-    state.lockedUntil > Date.now() ? Math.ceil((state.lockedUntil - Date.now()) / 1000) : 0;
-
-  writeCookie(LOCKOUT_COOKIE_KEY, JSON.stringify(state), {
-    maxAgeSeconds: Math.max(remainingLockoutSeconds, LOCKOUT_WINDOW_MS / 1000),
-  });
-}
+const DEFAULT_REMAINING_ATTEMPTS = 5;
 
 export function UnlockPanel() {
   const { closeUnlock, disableEditMode, enableEditMode, isEditMode, isUnlockOpen } = useEditMode();
-  const [attemptState, setAttemptState] = useState<UnlockAttemptState>({
-    failedAttempts: 0,
-    lockedUntil: 0,
-  });
+  const [lockedUntil, setLockedUntil] = useState(0);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
-  const isLocked = attemptState.lockedUntil > currentTime;
-  const remainingAttempts = Math.max(0, MAX_ATTEMPTS - attemptState.failedAttempts);
-  const remainingSeconds = Math.max(0, Math.ceil((attemptState.lockedUntil - currentTime) / 1000));
+  const [remainingAttempts, setRemainingAttempts] = useState(DEFAULT_REMAINING_ATTEMPTS);
+  const isLocked = lockedUntil > currentTime;
+  const remainingSeconds = Math.max(0, Math.ceil((lockedUntil - currentTime) / 1000));
 
   useEffect(() => {
-    setAttemptState(readUnlockAttemptState());
-  }, []);
+    if (!isUnlockOpen) {
+      return;
+    }
+
+    let isActive = true;
+
+    void loadAdminSessionStatus()
+      .then((status) => {
+        if (!isActive) {
+          return;
+        }
+
+        setLockedUntil(status.lockedUntil);
+        setRemainingAttempts(status.remainingAttempts || DEFAULT_REMAINING_ATTEMPTS);
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setLockedUntil(0);
+        setRemainingAttempts(DEFAULT_REMAINING_ATTEMPTS);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [isUnlockOpen]);
 
   useEffect(() => {
     if (!isLocked) {
@@ -95,16 +66,11 @@ export function UnlockPanel() {
   }, [isLocked]);
 
   useEffect(() => {
-    if (attemptState.lockedUntil <= currentTime && attemptState.lockedUntil !== 0) {
-      const resetState = {
-        failedAttempts: 0,
-        lockedUntil: 0,
-      };
-
-      setAttemptState(resetState);
-      persistUnlockAttemptState(resetState);
+    if (lockedUntil <= currentTime && lockedUntil !== 0) {
+      setLockedUntil(0);
+      setRemainingAttempts(DEFAULT_REMAINING_ATTEMPTS);
     }
-  }, [attemptState.lockedUntil, currentTime]);
+  }, [currentTime, lockedUntil]);
 
   const lockoutLabel = useMemo(() => {
     const minutes = Math.floor(remainingSeconds / 60);
@@ -136,41 +102,23 @@ export function UnlockPanel() {
     setError(null);
 
     try {
-      const hashedPassword = await sha256(password);
+      const status = await unlockAdminSession(password);
 
-      if (hashedPassword !== ADMIN_PASSWORD_HASH) {
-        const nextFailedAttempts = attemptState.failedAttempts + 1;
-        const nextState =
-          nextFailedAttempts >= MAX_ATTEMPTS
-            ? {
-                failedAttempts: 0,
-                lockedUntil: Date.now() + LOCKOUT_WINDOW_MS,
-              }
-            : {
-                failedAttempts: nextFailedAttempts,
-                lockedUntil: 0,
-              };
-
-        setAttemptState(nextState);
-        persistUnlockAttemptState(nextState);
-        setCurrentTime(Date.now());
-        setError(
-          nextFailedAttempts >= MAX_ATTEMPTS
-            ? "Too many failed attempts. Edit mode is temporarily locked."
-            : `Incorrect password. ${MAX_ATTEMPTS - nextFailedAttempts} attempt(s) remaining.`,
-        );
-        return;
-      }
-
-      const resetState = {
-        failedAttempts: 0,
-        lockedUntil: 0,
-      };
-
-      setAttemptState(resetState);
-      persistUnlockAttemptState(resetState);
+      setLockedUntil(status.lockedUntil);
+      setRemainingAttempts(status.remainingAttempts || DEFAULT_REMAINING_ATTEMPTS);
       enableEditMode();
       setPassword("");
+    } catch (error) {
+      const requestError = error as ApiRequestError;
+
+      setCurrentTime(Date.now());
+      setLockedUntil(requestError.lockedUntil ?? 0);
+      setRemainingAttempts(
+        typeof requestError.remainingAttempts === "number"
+          ? requestError.remainingAttempts
+          : DEFAULT_REMAINING_ATTEMPTS,
+      );
+      setError(requestError.message);
     } finally {
       setIsVerifying(false);
     }
@@ -262,7 +210,7 @@ export function UnlockPanel() {
             <span>Edit mode enabled</span>
             <button
               type="button"
-              onClick={disableEditMode}
+              onClick={() => void disableEditMode()}
               className="rounded-full border border-emerald-300/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] transition hover:bg-emerald-300/10"
             >
               Exit

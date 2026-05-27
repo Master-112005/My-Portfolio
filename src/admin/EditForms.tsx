@@ -5,8 +5,17 @@ import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { useEditMode } from "@/admin/EditMode";
+import { loadContactMailerSettings, saveContactMailerSettings } from "@/lib/api";
 import { useSiteData } from "@/lib/site-context";
-import type { HeroAction, ProjectImage, SkillGroup, SocialLink } from "@/lib/types";
+import type {
+  ContactMailerSettings,
+  ContactMailerSettingsInput,
+  HeroAction,
+  ProjectCustomSection,
+  ProjectImage,
+  SkillGroup,
+  SocialLink,
+} from "@/lib/types";
 import { createIdCardImageDataUrl, createProjectImageDataUrl } from "@/utils/profile-image";
 
 type FormState = Record<string, string>;
@@ -25,6 +34,25 @@ type ProjectImageDraft = {
   src: string;
   alt: string;
   caption: string;
+};
+
+type ProjectCustomSectionDraft = {
+  id: string;
+  title: string;
+  content: string;
+};
+
+const emptyMailerSettings: ContactMailerSettings = {
+  canPersist: false,
+  fromEmail: "",
+  fromName: "Portfolio Contact",
+  hasPassword: false,
+  smtpHost: "",
+  smtpPort: "587",
+  smtpSecure: false,
+  smtpUser: "",
+  source: "env",
+  toEmail: "",
 };
 
 function serializeLinks(links: SocialLink[]) {
@@ -84,7 +112,7 @@ function buildSkillGroupDrafts(groups: SkillGroup[]) {
 
 function normalizeSkillGroupDrafts(groups: SkillGroupDraft[]) {
   return groups
-    .map((group, index): SkillGroup | null => {
+    .map((group): SkillGroup | null => {
       const title = group.title.trim();
       const items = parseList(group.items);
 
@@ -93,9 +121,9 @@ function normalizeSkillGroupDrafts(groups: SkillGroupDraft[]) {
       }
 
       return {
-        title: title || `Skill Cluster ${index + 1}`,
-        accent: group.accent.trim() || "#67e8f9",
-        marker: (group.marker.trim() || title.slice(0, 2) || "SC").slice(0, 2).toUpperCase(),
+        title,
+        accent: group.accent.trim(),
+        marker: group.marker.trim().slice(0, 2).toUpperCase(),
         items,
       };
     })
@@ -115,25 +143,58 @@ function buildProjectImageDrafts(images: ProjectImage[]) {
   return images.length ? images.map((image, index) => createProjectImageDraft(image, index)) : [];
 }
 
-function normalizeProjectImageDrafts(images: ProjectImageDraft[], projectName: string) {
+function normalizeProjectImageDrafts(images: ProjectImageDraft[]) {
   return images
-    .map((image, index): ProjectImage | null => {
+    .map((image): ProjectImage | null => {
       const src = image.src.trim();
 
       if (!src) {
         return null;
       }
 
-      const fallbackLabel = `${projectName || "Project"} screenshot ${index + 1}`;
-
       return {
         id: image.id,
         src,
-        alt: image.alt.trim() || fallbackLabel,
+        alt: image.alt.trim(),
         caption: image.caption.trim(),
       };
     })
     .filter((image): image is ProjectImage => Boolean(image));
+}
+
+function createProjectCustomSectionDraft(section?: ProjectCustomSection, index = 0): ProjectCustomSectionDraft {
+  const title = section?.title ?? `Custom section ${index + 1}`;
+
+  return {
+    id: section?.id ?? `project-custom-section-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    title,
+    content: section?.content ?? "",
+  };
+}
+
+function buildProjectCustomSectionDrafts(sections: ProjectCustomSection[]) {
+  return sections.length
+    ? sections.map((section, index) => createProjectCustomSectionDraft(section, index))
+    : [];
+}
+
+function normalizeProjectCustomSectionDrafts(sections: ProjectCustomSectionDraft[]) {
+  return sections
+    .map((section): ProjectCustomSection | null => {
+      const title = section.title.trim();
+      const content = section.content.trim();
+
+      if (!title || !content) {
+        return null;
+      }
+
+      return {
+        id: section.id,
+        title,
+        content,
+      };
+    })
+    .filter((section): section is ProjectCustomSection => Boolean(section));
 }
 
 function buildFormState(
@@ -161,6 +222,13 @@ function buildFormState(
         idCardBackFooter: data.profile.idCard.backFooter,
         heroActions: serializeActions(data.profile.heroActions),
         socialLinks: serializeLinks(data.profile.socialLinks),
+      };
+    case "skills":
+      return {};
+    case "timeline":
+      return {
+        title: data.timeline.title,
+        description: data.timeline.description,
       };
     case "education": {
       const item = data.education.find((entry) => entry.id === editor.itemId);
@@ -193,6 +261,7 @@ function buildFormState(
             status: item.status,
             fileTree: item.fileTree.join("\n"),
             codeSnippet: item.codeSnippet,
+            readme: item.readme,
           }
         : {};
     }
@@ -205,6 +274,17 @@ function buildFormState(
         responseTime: data.contact.responseTime,
         availability: data.contact.availability,
         socialLinks: serializeLinks(data.contact.socialLinks),
+      };
+    case "mailer":
+      return {
+        fromEmail: "",
+        fromName: "Portfolio Contact",
+        smtpHost: "",
+        smtpPass: "",
+        smtpPort: "587",
+        smtpSecure: "false",
+        smtpUser: "",
+        toEmail: "",
       };
     case "footer":
       return {
@@ -254,7 +334,7 @@ function Field({
 }
 
 export function EditForms() {
-  const { closeEditor, editor } = useEditMode();
+  const { closeEditor, editor, openEditor } = useEditMode();
   const {
     data,
     isSaving,
@@ -265,12 +345,18 @@ export function EditForms() {
     updateFooter,
     updateProfile,
     updateProject,
+    updateTimeline,
   } = useSiteData();
   const [formState, setFormState] = useState<FormState>({});
   const [skillGroupsDraft, setSkillGroupsDraft] = useState<SkillGroupDraft[]>([]);
   const [projectImagesDraft, setProjectImagesDraft] = useState<ProjectImageDraft[]>([]);
+  const [projectCustomSectionsDraft, setProjectCustomSectionsDraft] = useState<ProjectCustomSectionDraft[]>([]);
   const [isProcessingProfileImage, setIsProcessingProfileImage] = useState(false);
   const [isProcessingProjectImages, setIsProcessingProjectImages] = useState(false);
+  const [isLoadingMailerSettings, setIsLoadingMailerSettings] = useState(false);
+  const [isSavingMailerSettings, setIsSavingMailerSettings] = useState(false);
+  const [mailerInfo, setMailerInfo] = useState<ContactMailerSettings>(emptyMailerSettings);
+  const [mailerError, setMailerError] = useState<string | null>(null);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
   const [projectImageError, setProjectImageError] = useState<string | null>(null);
 
@@ -279,22 +365,82 @@ export function EditForms() {
       setFormState({});
       setSkillGroupsDraft([]);
       setProjectImagesDraft([]);
+      setProjectCustomSectionsDraft([]);
       setIsProcessingProfileImage(false);
       setIsProcessingProjectImages(false);
+      setIsLoadingMailerSettings(false);
+      setIsSavingMailerSettings(false);
+      setMailerInfo(emptyMailerSettings);
+      setMailerError(null);
       setProfileImageError(null);
       setProjectImageError(null);
       return;
     }
 
     setFormState(buildFormState(editor, data));
-    setSkillGroupsDraft(editor.section === "profile" ? buildSkillGroupDrafts(data.profile.skillGroups) : []);
+    setSkillGroupsDraft(editor.section === "skills" ? buildSkillGroupDrafts(data.profile.skillGroups) : []);
     setProjectImagesDraft(
       editor.section === "projects"
         ? buildProjectImageDrafts(data.projects.find((entry) => entry.id === editor.itemId)?.images ?? [])
         : [],
     );
+    setProjectCustomSectionsDraft(
+      editor.section === "projects"
+        ? buildProjectCustomSectionDrafts(
+            data.projects.find((entry) => entry.id === editor.itemId)?.customSections ?? [],
+          )
+        : [],
+    );
+    setMailerError(null);
     setProfileImageError(null);
     setProjectImageError(null);
+
+    if (editor.section !== "mailer") {
+      setIsLoadingMailerSettings(false);
+      setIsSavingMailerSettings(false);
+      setMailerInfo(emptyMailerSettings);
+      return;
+    }
+
+    let isActive = true;
+    setIsLoadingMailerSettings(true);
+
+    void loadContactMailerSettings()
+      .then((settings) => {
+        if (!isActive) {
+          return;
+        }
+
+        setMailerInfo(settings);
+        setFormState({
+          fromEmail: settings.fromEmail,
+          fromName: settings.fromName,
+          smtpHost: settings.smtpHost,
+          smtpPass: "",
+          smtpPort: settings.smtpPort,
+          smtpSecure: String(settings.smtpSecure),
+          smtpUser: settings.smtpUser,
+          toEmail: settings.toEmail,
+        });
+      })
+      .catch((error) => {
+        if (!isActive) {
+          return;
+        }
+
+        setMailerError(
+          error instanceof Error ? error.message : "Failed to load contact mailer settings.",
+        );
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoadingMailerSettings(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [data, editor]);
 
   if (!editor) {
@@ -302,6 +448,10 @@ export function EditForms() {
   }
 
   const setValue = (key: string, value: string) => {
+    if (editor.section === "mailer") {
+      setMailerError(null);
+    }
+
     setFormState((current) => ({
       ...current,
       [key]: value,
@@ -346,6 +496,34 @@ export function EditForms() {
     setProjectImagesDraft((current) => current.filter((image) => image.id !== id));
   };
 
+  const updateProjectCustomSectionDraft = (
+    id: string,
+    key: keyof Omit<ProjectCustomSectionDraft, "id">,
+    value: string,
+  ) => {
+    setProjectCustomSectionsDraft((current) =>
+      current.map((section) =>
+        section.id === id
+          ? {
+              ...section,
+              [key]: value,
+            }
+          : section,
+      ),
+    );
+  };
+
+  const addProjectCustomSection = () => {
+    setProjectCustomSectionsDraft((current) => [
+      ...current,
+      createProjectCustomSectionDraft(undefined, current.length),
+    ]);
+  };
+
+  const deleteProjectCustomSectionDraft = (id: string) => {
+    setProjectCustomSectionsDraft((current) => current.filter((section) => section.id !== id));
+  };
+
   const handleProfileImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -363,7 +541,7 @@ export function EditForms() {
       setFormState((current) => ({
         ...current,
         profileImageSrc: processedImage,
-        profileImageAlt: current.profileImageAlt?.trim() || `${current.name?.trim() || data.profile.name} profile photo`,
+        profileImageAlt: current.profileImageAlt ?? "",
       }));
     } catch (error) {
       setProfileImageError(error instanceof Error ? error.message : "Failed to process the uploaded image.");
@@ -433,7 +611,7 @@ export function EditForms() {
           location: formState.location.trim(),
           availability: formState.availability.trim(),
           avatarLabel: formState.avatarLabel.trim().slice(0, 2).toUpperCase(),
-          profileImageAlt: formState.profileImageAlt.trim() || `${formState.name.trim()} profile photo`,
+          profileImageAlt: formState.profileImageAlt.trim(),
           profileImageSrc: formState.profileImageSrc.trim(),
           idCard: {
             ...data.profile.idCard,
@@ -445,9 +623,20 @@ export function EditForms() {
             backDescription: formState.idCardBackDescription.trim(),
             backFooter: formState.idCardBackFooter.trim(),
           },
-          skillGroups: normalizeSkillGroupDrafts(skillGroupsDraft),
           heroActions: parseActions(formState.heroActions),
           socialLinks: parseLinks(formState.socialLinks),
+        });
+        break;
+      case "skills":
+        await updateProfile({
+          ...data.profile,
+          skillGroups: normalizeSkillGroupDrafts(skillGroupsDraft),
+        });
+        break;
+      case "timeline":
+        await updateTimeline({
+          title: formState.title.trim(),
+          description: formState.description.trim(),
         });
         break;
       case "education": {
@@ -464,7 +653,7 @@ export function EditForms() {
           institution: formState.institution.trim(),
           summary: formState.summary.trim(),
           details: parseList(formState.details),
-          accent: formState.accent.trim() || item.accent,
+          accent: formState.accent.trim(),
         });
         break;
       }
@@ -488,11 +677,13 @@ export function EditForms() {
           repoHref: formState.repoHref.trim(),
           liveHref: formState.liveHref.trim(),
           icon: formState.icon.trim().slice(0, 2).toUpperCase(),
-          accent: formState.accent.trim() || item.accent,
+          accent: formState.accent.trim(),
           status: formState.status.trim(),
           fileTree: parseList(formState.fileTree),
           codeSnippet: formState.codeSnippet,
-          images: normalizeProjectImageDrafts(projectImagesDraft, formState.name.trim() || item.name),
+          readme: formState.readme.trim(),
+          images: normalizeProjectImageDrafts(projectImagesDraft),
+          customSections: normalizeProjectCustomSectionDrafts(projectCustomSectionsDraft),
         });
         break;
       }
@@ -508,6 +699,35 @@ export function EditForms() {
           socialLinks: parseLinks(formState.socialLinks),
         });
         break;
+      case "mailer": {
+        const settings = {
+          fromEmail: formState.fromEmail.trim(),
+          fromName: formState.fromName.trim(),
+          smtpHost: formState.smtpHost.trim(),
+          smtpPass: formState.smtpPass.trim(),
+          smtpPort: formState.smtpPort.trim(),
+          smtpSecure: formState.smtpSecure === "true",
+          smtpUser: formState.smtpUser.trim(),
+          toEmail: formState.toEmail.trim(),
+        } satisfies ContactMailerSettingsInput;
+
+        setIsSavingMailerSettings(true);
+        setMailerError(null);
+
+        try {
+          const savedSettings = await saveContactMailerSettings(settings);
+          setMailerInfo(savedSettings);
+          closeEditor();
+        } catch (error) {
+          setMailerError(
+            error instanceof Error ? error.message : "Failed to save contact mailer settings.",
+          );
+        } finally {
+          setIsSavingMailerSettings(false);
+        }
+
+        return;
+      }
       case "footer":
         await updateFooter({
           ...data.footer,
@@ -559,9 +779,12 @@ export function EditForms() {
 
   const titleMap = {
     profile: "Edit profile and ID card",
+    skills: "Edit skills",
+    timeline: "Edit education journey copy",
     education: "Edit education stage",
     projects: "Edit project",
     contact: "Edit contact details",
+    mailer: "Edit contact mailer",
     footer: "Edit footer",
   } as const;
 
@@ -719,87 +942,116 @@ export function EditForms() {
                       placeholder="GitHub | https://github.com | @handle"
                     />
                   </div>
-                  <div className="sm:col-span-2 space-y-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                      <div className="space-y-1">
-                        <span className="eyebrow">Skill clusters</span>
-                        <p className="text-sm text-[color:var(--text-soft)]">
-                          Edit each skills card directly and add or delete whole skill clusters as needed.
-                        </p>
-                      </div>
-                      <button type="button" onClick={addSkillGroup} className="edit-button">
-                        <span aria-hidden="true">+</span>
-                        <span>Add skill cluster</span>
-                      </button>
-                    </div>
+                </>
+              ) : null}
 
-                    <div className="grid gap-4">
-                      {skillGroupsDraft.map((group, index) => (
-                        <div
-                          key={group.id}
-                          className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/58 p-4"
-                        >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="flex h-11 w-11 items-center justify-center rounded-[1rem] border font-mono text-sm font-semibold uppercase tracking-[0.2em]"
-                                style={{
-                                  borderColor: `${group.accent}55`,
-                                  backgroundColor: `${group.accent}16`,
-                                  color: group.accent,
-                                }}
-                              >
-                                {group.marker || "SC"}
-                              </div>
-                              <div>
-                                <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
-                                  Skill cluster {String(index + 1).padStart(2, "0")}
-                                </p>
-                                <p className="mt-1 text-base font-medium text-[color:var(--text)]">
-                                  {group.title.trim() || "Untitled cluster"}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => deleteSkillGroup(group.id)}
-                              className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
+              {editor.section === "skills" ? (
+                <>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Skill clusters</span>
+                    <p className="text-sm text-[color:var(--text-soft)]">
+                      Edit each skills card directly and add or delete whole skill clusters as needed.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <button type="button" onClick={addSkillGroup} className="edit-button">
+                      <span aria-hidden="true">+</span>
+                      <span>Add skill cluster</span>
+                    </button>
+                  </div>
+                  <div className="sm:col-span-2 grid gap-4">
+                    {skillGroupsDraft.map((group, index) => (
+                      <div
+                        key={group.id}
+                        className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/58 p-4"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="flex h-11 w-11 items-center justify-center rounded-[1rem] border font-mono text-sm font-semibold uppercase tracking-[0.2em]"
+                              style={{
+                                borderColor: `color-mix(in srgb, ${group.accent.trim() || "var(--accent)"} 34%, transparent)`,
+                                backgroundColor: `color-mix(in srgb, ${group.accent.trim() || "var(--accent)"} 16%, transparent)`,
+                                color: group.accent.trim() || "var(--accent)",
+                              }}
                             >
-                              Delete cluster
-                            </button>
-                          </div>
-
-                          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                            <Field
-                              label="Title"
-                              value={group.title}
-                              onChange={(value) => updateSkillGroupDraft(group.id, "title", value)}
-                            />
-                            <Field
-                              label="Marker"
-                              value={group.marker}
-                              onChange={(value) => updateSkillGroupDraft(group.id, "marker", value.toUpperCase().slice(0, 2))}
-                              placeholder="LG"
-                            />
-                            <Field
-                              label="Accent"
-                              value={group.accent}
-                              onChange={(value) => updateSkillGroupDraft(group.id, "accent", value)}
-                              placeholder="#67e8f9"
-                            />
-                            <div className="sm:col-span-3">
-                              <Field
-                                label="Skills"
-                                value={group.items}
-                                onChange={(value) => updateSkillGroupDraft(group.id, "items", value)}
-                                multiline
-                                placeholder={"TypeScript\nJavaScript\nPython"}
-                              />
+                              {group.marker}
                             </div>
+                            <div>
+                              <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                Skill cluster {String(index + 1).padStart(2, "0")}
+                              </p>
+                              <p className="mt-1 text-base font-medium text-[color:var(--text)]">
+                                {group.title.trim()}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => deleteSkillGroup(group.id)}
+                            className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
+                          >
+                            Delete cluster
+                          </button>
+                        </div>
+
+                        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                          <Field
+                            label="Title"
+                            value={group.title}
+                            onChange={(value) => updateSkillGroupDraft(group.id, "title", value)}
+                          />
+                          <Field
+                            label="Marker"
+                            value={group.marker}
+                            onChange={(value) => updateSkillGroupDraft(group.id, "marker", value.toUpperCase().slice(0, 2))}
+                            placeholder="LG"
+                          />
+                          <Field
+                            label="Accent"
+                            value={group.accent}
+                            onChange={(value) => updateSkillGroupDraft(group.id, "accent", value)}
+                            placeholder="#67e8f9"
+                          />
+                          <div className="sm:col-span-3">
+                            <Field
+                              label="Skills"
+                              value={group.items}
+                              onChange={(value) => updateSkillGroupDraft(group.id, "items", value)}
+                              multiline
+                              placeholder={"TypeScript\nJavaScript\nPython"}
+                            />
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+
+              {editor.section === "timeline" ? (
+                <>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Education journey copy</span>
+                    <p className="text-sm text-[color:var(--text-soft)]">
+                      These fields control the title and supporting text shown above the milestones.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Journey title"
+                      value={formState.title ?? ""}
+                      onChange={(value) => setValue("title", value)}
+                      multiline
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Journey description"
+                      value={formState.description ?? ""}
+                      onChange={(value) => setValue("description", value)}
+                      multiline
+                    />
                   </div>
                 </>
               ) : null}
@@ -848,6 +1100,13 @@ export function EditForms() {
 
               {editor.section === "projects" ? (
                 <>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Explorer layout</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      Each project now opens with fixed Explorer views for overview, pictures, stack and links, and
+                      README, plus any custom sections you add below.
+                    </p>
+                  </div>
                   <Field
                     label="Project name"
                     value={formState.name ?? ""}
@@ -873,11 +1132,11 @@ export function EditForms() {
                       multiline
                     />
                   </div>
-                  <Field
-                    label="Stack"
-                    value={formState.stack ?? ""}
-                    onChange={(value) => setValue("stack", value)}
-                    placeholder="Next.js, TypeScript, Firebase"
+                    <Field
+                      label="Stack"
+                      value={formState.stack ?? ""}
+                      onChange={(value) => setValue("stack", value)}
+                      placeholder="Next.js, TypeScript, Firebase"
                   />
                   <Field
                     label="Status"
@@ -894,12 +1153,21 @@ export function EditForms() {
                     value={formState.liveHref ?? ""}
                     onChange={(value) => setValue("liveHref", value)}
                   />
-                  <Field
-                    label="Accent color"
-                    value={formState.accent ?? ""}
-                    onChange={(value) => setValue("accent", value)}
-                    placeholder="#14b8a6"
-                  />
+                    <Field
+                      label="Accent color"
+                      value={formState.accent ?? ""}
+                      onChange={(value) => setValue("accent", value)}
+                      placeholder="#14b8a6"
+                    />
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="README"
+                      value={formState.readme ?? ""}
+                      onChange={(value) => setValue("readme", value)}
+                      multiline
+                      placeholder="# Project README"
+                    />
+                  </div>
                   <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-2">
@@ -942,7 +1210,7 @@ export function EditForms() {
                                     Screenshot {String(index + 1).padStart(2, "0")}
                                   </p>
                                   <p className="mt-1 text-sm text-[color:var(--text-soft)]">
-                                    This image appears in the overview gallery below the Explorer panel.
+                                    This image appears in the Project pics view inside the Explorer window.
                                   </p>
                                 </div>
                                 <button
@@ -989,6 +1257,73 @@ export function EditForms() {
                       )}
                     </div>
                   </div>
+                  <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                          Custom Explorer sections
+                        </p>
+                        <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
+                          Add extra Explorer options for anything that does not fit the default views, such as results,
+                          architecture notes, deployment details, or case-study context.
+                        </p>
+                      </div>
+                      <button type="button" onClick={addProjectCustomSection} className="edit-button">
+                        <span aria-hidden="true">+</span>
+                        <span>Add section</span>
+                      </button>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      {projectCustomSectionsDraft.length ? (
+                        projectCustomSectionsDraft.map((section, index) => (
+                          <div
+                            key={section.id}
+                            className="rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                  Custom option {String(index + 1).padStart(2, "0")}
+                                </p>
+                                <p className="mt-1 text-sm text-[color:var(--text-soft)]">
+                                  The title becomes the Explorer label. The content is shown in its own detail view.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => deleteProjectCustomSectionDraft(section.id)}
+                                className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
+                              >
+                                Delete section
+                              </button>
+                            </div>
+
+                            <div className="mt-4 grid gap-4">
+                              <Field
+                                label="Section title"
+                                value={section.title}
+                                onChange={(value) => updateProjectCustomSectionDraft(section.id, "title", value)}
+                                placeholder="Results"
+                              />
+                              <Field
+                                label="Section content"
+                                value={section.content}
+                                onChange={(value) => updateProjectCustomSectionDraft(section.id, "content", value)}
+                                multiline
+                                placeholder="Add the notes that should appear in this custom Explorer view."
+                              />
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
+                          No custom Explorer sections yet. Add one when you want a project-specific tab beyond the
+                          default overview, pictures, stack and links, and README views.
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="sm:col-span-2">
                     <Field
                       label="Features"
@@ -1018,6 +1353,20 @@ export function EditForms() {
 
               {editor.section === "contact" ? (
                 <>
+                  <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <span className="eyebrow">Email delivery</span>
+                        <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                          Configure where portfolio contact messages are delivered without opening the code.
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => openEditor("mailer")} className="edit-button">
+                        <span aria-hidden="true">+</span>
+                        <span>Edit mailer</span>
+                      </button>
+                    </div>
+                  </div>
                   <div className="sm:col-span-2">
                     <Field
                       label="Headline"
@@ -1061,6 +1410,104 @@ export function EditForms() {
                       multiline
                     />
                   </div>
+                </>
+              ) : null}
+
+              {editor.section === "mailer" ? (
+                <>
+                  <div className="sm:col-span-2 space-y-2">
+                    <span className="eyebrow">Private mailer settings</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      These values are used by the contact form email sender. The SMTP password is never shown back in the UI. Leave it blank to keep the current saved password.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                    <p>
+                      Source: <span className="font-semibold text-[color:var(--text)]">{mailerInfo.source}</span>
+                    </p>
+                    <p>
+                      Password saved: <span className="font-semibold text-[color:var(--text)]">{mailerInfo.hasPassword ? "Yes" : "No"}</span>
+                    </p>
+                    <p>
+                      Persist from edit mode: <span className="font-semibold text-[color:var(--text)]">{mailerInfo.canPersist ? "Enabled" : "Unavailable"}</span>
+                    </p>
+                    {!mailerInfo.canPersist ? (
+                      <p className="mt-3 text-amber-300">
+                        Firebase Admin is not configured, so mailer changes cannot be saved from the UI yet.
+                      </p>
+                    ) : null}
+                  </div>
+                  <Field
+                    label="SMTP host"
+                    value={formState.smtpHost ?? ""}
+                    onChange={(value) => setValue("smtpHost", value)}
+                    placeholder="smtp.gmail.com"
+                  />
+                  <Field
+                    label="SMTP port"
+                    value={formState.smtpPort ?? ""}
+                    onChange={(value) => setValue("smtpPort", value)}
+                    placeholder="587"
+                  />
+                  <Field
+                    label="SMTP user"
+                    value={formState.smtpUser ?? ""}
+                    onChange={(value) => setValue("smtpUser", value)}
+                    placeholder="your@email.com"
+                  />
+                  <Field
+                    label="To email"
+                    value={formState.toEmail ?? ""}
+                    onChange={(value) => setValue("toEmail", value)}
+                    placeholder="your@email.com"
+                  />
+                  <Field
+                    label="From email"
+                    value={formState.fromEmail ?? ""}
+                    onChange={(value) => setValue("fromEmail", value)}
+                    placeholder="your@email.com"
+                  />
+                  <Field
+                    label="From name"
+                    value={formState.fromName ?? ""}
+                    onChange={(value) => setValue("fromName", value)}
+                    placeholder="Portfolio Contact"
+                  />
+                  <div className="sm:col-span-2">
+                    <label className="space-y-2">
+                      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                        SMTP password
+                      </span>
+                      <input
+                        type="password"
+                        value={formState.smtpPass ?? ""}
+                        onChange={(event) => setValue("smtpPass", event.target.value)}
+                        placeholder={mailerInfo.hasPassword ? "Leave blank to keep current password" : "Enter SMTP password"}
+                        className="input-surface"
+                      />
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="space-y-2">
+                      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                        Transport security
+                      </span>
+                      <select
+                        value={formState.smtpSecure ?? "false"}
+                        onChange={(event) => setValue("smtpSecure", event.target.value)}
+                        className="input-surface"
+                      >
+                        <option value="false">STARTTLS / explicit TLS (usually port 587)</option>
+                        <option value="true">Implicit TLS / SSL (usually port 465)</option>
+                      </select>
+                    </label>
+                  </div>
+                  {isLoadingMailerSettings ? (
+                    <div className="sm:col-span-2 text-sm text-[color:var(--text-soft)]">Loading mailer settings...</div>
+                  ) : null}
+                  {mailerError ? (
+                    <div className="sm:col-span-2 text-sm text-rose-300">{mailerError}</div>
+                  ) : null}
                 </>
               ) : null}
 
@@ -1119,13 +1566,24 @@ export function EditForms() {
               <button
                 type="button"
                 onClick={() => void handleSave()}
-                disabled={isSaving || isProcessingProfileImage || isProcessingProjectImages}
+                disabled={
+                  isSaving ||
+                  isProcessingProfileImage ||
+                  isProcessingProjectImages ||
+                  isSavingMailerSettings ||
+                  isLoadingMailerSettings ||
+                  (editor.section === "mailer" && !mailerInfo.canPersist)
+                }
                 className="rounded-full bg-[color:var(--accent)] px-5 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-wait disabled:opacity-75"
               >
                 {isProcessingProfileImage
                   ? "Processing image..."
                   : isProcessingProjectImages
                     ? "Processing images..."
+                    : isLoadingMailerSettings
+                      ? "Loading settings..."
+                      : isSavingMailerSettings
+                        ? "Saving mailer..."
                     : isSaving
                       ? "Saving..."
                       : "Save changes"}

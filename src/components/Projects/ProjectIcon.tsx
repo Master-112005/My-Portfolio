@@ -12,14 +12,19 @@ type ProjectIconProps = {
 };
 
 export default function ProjectIcon({ isActive, onOpen, project }: ProjectIconProps) {
+  const accent = project.accent.trim() || "var(--accent)";
+  const icon = project.icon.trim();
+  const name = project.name.trim();
+  const status = project.status.trim();
+
   return (
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       className="group relative flex w-[8.5rem] flex-col items-center gap-3 rounded-[1.5rem] border border-transparent p-3 text-center transition"
       style={{
-        borderColor: isActive ? `${project.accent}55` : "transparent",
-        background: isActive ? `${project.accent}12` : "transparent",
+        borderColor: isActive ? `color-mix(in srgb, ${accent} 34%, transparent)` : "transparent",
+        background: isActive ? `color-mix(in srgb, ${accent} 12%, transparent)` : "transparent",
       }}
     >
       <button
@@ -30,15 +35,15 @@ export default function ProjectIcon({ isActive, onOpen, project }: ProjectIconPr
         <div
           className="flex h-16 w-16 items-center justify-center rounded-[1.35rem] border text-lg font-semibold tracking-[0.12em] text-white shadow-lg transition group-hover:shadow-xl"
           style={{
-            borderColor: `${project.accent}55`,
-            background: `linear-gradient(145deg, ${project.accent}, #0f172a)`,
+            borderColor: `color-mix(in srgb, ${accent} 34%, transparent)`,
+            background: `linear-gradient(145deg, ${accent}, #0f172a)`,
           }}
         >
-          {project.icon}
+          {icon}
         </div>
         <div className="space-y-1">
-          <p className="text-sm font-medium text-[color:var(--text)]">{project.name}</p>
-          <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-soft)]">{project.status}</p>
+          {name ? <p className="text-sm font-medium text-slate-100">{name}</p> : null}
+          {status ? <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{status}</p> : null}
         </div>
       </button>
 
