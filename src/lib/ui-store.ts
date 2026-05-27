@@ -3,6 +3,7 @@
 import { create } from "zustand";
 
 export type WindowMode = "normal" | "maximized" | "minimized";
+type ExpandedWindowMode = Exclude<WindowMode, "minimized">;
 
 export type CursorState = {
   clicking: boolean;
@@ -15,6 +16,7 @@ type PortfolioUiState = {
   activeProjectId: string | null;
   cursorState: CursorState;
   isGuideActive: boolean;
+  lastExpandedWindowMode: ExpandedWindowMode;
   windowMode: WindowMode;
   closeProjectWindow: () => void;
   maximizeProjectWindow: () => void;
@@ -37,24 +39,30 @@ export const usePortfolioUiStore = create<PortfolioUiState>((set) => ({
   activeProjectId: null,
   cursorState: initialCursorState,
   isGuideActive: false,
+  lastExpandedWindowMode: "normal",
   windowMode: "normal",
   closeProjectWindow: () =>
     set({
       activeProjectId: null,
+      lastExpandedWindowMode: "normal",
       windowMode: "normal",
     }),
   maximizeProjectWindow: () =>
     set((current) => ({
+      lastExpandedWindowMode: current.windowMode === "maximized" ? "normal" : "maximized",
       windowMode: current.windowMode === "maximized" ? "normal" : "maximized",
     })),
   minimizeProjectWindow: () =>
-    set({
+    set((current) => ({
+      lastExpandedWindowMode:
+        current.windowMode === "minimized" ? current.lastExpandedWindowMode : current.windowMode,
       windowMode: "minimized",
-    }),
+    })),
   openProjectWindow: (projectId) =>
     set({
       activeProjectId: projectId,
-      windowMode: "normal",
+      lastExpandedWindowMode: "maximized",
+      windowMode: "maximized",
     }),
   resetPointer: () =>
     set({
@@ -62,9 +70,10 @@ export const usePortfolioUiStore = create<PortfolioUiState>((set) => ({
       isGuideActive: false,
     }),
   restoreProjectWindow: () =>
-    set({
-      windowMode: "normal",
-    }),
+    set((current) => ({
+      lastExpandedWindowMode: current.windowMode === "maximized" ? "normal" : current.lastExpandedWindowMode,
+      windowMode: current.windowMode === "minimized" ? current.lastExpandedWindowMode : "normal",
+    })),
   setCursorState: (cursorState) =>
     set((current) => ({
       cursorState: typeof cursorState === "function" ? cursorState(current.cursorState) : cursorState,

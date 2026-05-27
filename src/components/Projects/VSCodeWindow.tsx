@@ -202,50 +202,29 @@ export default function VSCodeWindow({
           onDoubleClick={mode === "minimized" ? onRestore : onMaximize}
         >
           <div className="flex flex-col gap-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className="rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em]"
-                  style={{
-                    borderColor: `color-mix(in srgb, ${accent} 35%, rgba(148,163,184,0.3))`,
-                    backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`,
-                    color: accent,
-                  }}
-                >
-                  {mode === "maximized" ? "Fullscreen" : mode === "minimized" ? "Minimized" : "Project view"}
-                </span>
-                {status ? (
-                  <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                    {status}
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <WindowAction
-                  label={mode === "minimized" ? "Restore" : "Minimize"}
-                  onClick={mode === "minimized" ? onRestore : onMinimize}
-                >
-                  -
-                </WindowAction>
-                <WindowAction
-                  label={mode === "maximized" ? "Windowed" : "Fullscreen"}
-                  onClick={mode === "maximized" ? onRestore : onMaximize}
-                >
-                  []
-                </WindowAction>
-                <WindowAction label="Close" onClick={onClose} tone="close">
-                  x
-                </WindowAction>
-              </div>
-            </div>
-
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex flex-1 flex-wrap items-center gap-3">
                 {name ? <h3 className="truncate text-2xl font-semibold tracking-[-0.04em] text-white">{name}</h3> : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className="rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em]"
+                    style={{
+                      borderColor: `color-mix(in srgb, ${accent} 35%, rgba(148,163,184,0.3))`,
+                      backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`,
+                      color: accent,
+                    }}
+                  >
+                    {mode === "maximized" ? "Fullscreen" : mode === "minimized" ? "Minimized" : "Project view"}
+                  </span>
+                  {status ? (
+                    <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
+                      {status}
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 {repoHref ? (
                   <a
                     href={repoHref}
@@ -267,6 +246,23 @@ export default function VSCodeWindow({
                     Open live site
                   </a>
                 ) : null}
+                <div className="flex items-center gap-2">
+                  <WindowAction
+                    label={mode === "minimized" ? "Restore" : "Minimize"}
+                    onClick={mode === "minimized" ? onRestore : onMinimize}
+                  >
+                    -
+                  </WindowAction>
+                  <WindowAction
+                    label={mode === "maximized" ? "Windowed" : "Fullscreen"}
+                    onClick={mode === "maximized" ? onRestore : onMaximize}
+                  >
+                    []
+                  </WindowAction>
+                  <WindowAction label="Close" onClick={onClose} tone="close">
+                    x
+                  </WindowAction>
+                </div>
               </div>
             </div>
 
