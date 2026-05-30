@@ -84,24 +84,22 @@ function Heatmap({ accent, days, emptyLabel }: HeatmapProps) {
         </div>
 
         <div className="min-w-0 flex-1 overflow-x-auto pb-1">
-          <div className="flex min-w-[32rem] gap-[3px]">
-            {weeks.map((week, weekIndex) => (
-              <div key={`week-${week[0]?.date ?? weekIndex}`} className="grid grid-rows-7 gap-[3px]">
-                {week.map((day) => {
-                  const level = hasActivity ? day.level : 0;
-                  const isActive = level > 0;
+          <div className="mx-auto grid w-max min-w-[32rem] grid-flow-col grid-rows-7 gap-[3px] px-2 sm:min-w-0">
+            {weeks.flatMap((week, weekIndex) =>
+              week.map((day) => {
+                const level = hasActivity ? day.level : 0;
+                const isActive = level > 0;
 
-                  return (
-                    <span
-                      key={day.date}
-                      title={`${day.date}: ${day.count} ${day.count === 1 ? "activity" : "activities"}`}
-                      className={`h-[7px] w-[7px] rounded-[2px] ${isActive ? levelOpacity[level] : "bg-[color:var(--line)]"}`}
-                      style={isActive ? { backgroundColor: accent } : undefined}
-                    />
-                  );
-                })}
-              </div>
-            ))}
+                return (
+                  <span
+                    key={`${weekIndex}-${day.date}`}
+                    title={`${day.date}: ${day.count} ${day.count === 1 ? "activity" : "activities"}`}
+                    className={`h-[8px] w-[8px] rounded-[2px] ${isActive ? levelOpacity[level] : "bg-[color:var(--line)]"}`}
+                    style={isActive ? { backgroundColor: accent } : undefined}
+                  />
+                );
+              }),
+            )}
           </div>
         </div>
       </div>
