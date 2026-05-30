@@ -141,12 +141,15 @@ export type FooterData = {
 
 export type ProjectsSectionData = SectionIntroData;
 
+export type WorkSectionData = SectionIntroData;
+
 export type PortfolioData = {
   profile: ProfileData;
   timeline: TimelineSectionData;
   education: EducationItem[];
   projectsSection: ProjectsSectionData;
   projects: ProjectData[];
+  workSection: WorkSectionData;
   contact: ContactData;
   footer: FooterData;
 };
@@ -158,6 +161,7 @@ export type EditableSection =
   | "timeline"
   | "education"
   | "projects"
+  | "work"
   | "contact"
   | "mailer"
   | "footer";
@@ -197,4 +201,16 @@ export type ContactMailerSettingsInput = {
   smtpSecure: boolean;
   smtpUser: string;
   toEmail: string;
+};
+
+export type WorkSettings = {
+  canPersist: boolean;
+  githubUsername: string;
+  hasGithubToken: boolean;
+  source: "env" | "firestore";
+};
+
+export type WorkSettingsInput = {
+  githubToken?: string;
+  githubUsername: string;
 };

@@ -4,6 +4,8 @@ import type {
   ContactMailerSettingsInput,
   ContactMessageInput,
   PortfolioData,
+  WorkSettings,
+  WorkSettingsInput,
 } from "@/lib/types";
 
 export type AdminSessionStatus = {
@@ -30,6 +32,14 @@ type ContactMailerSettingsEnvelope = {
   smtpUser?: string;
   source?: "env" | "firestore";
   toEmail?: string;
+};
+
+type WorkSettingsEnvelope = {
+  canPersist?: boolean;
+  error?: string;
+  githubUsername?: string;
+  hasGithubToken?: boolean;
+  source?: "env" | "firestore";
 };
 
 type ApiEnvelope = {
@@ -174,4 +184,31 @@ export async function saveContactMailerSettings(settings: ContactMailerSettingsI
     source: payload.source ?? "env",
     toEmail: payload.toEmail ?? "",
   } satisfies ContactMailerSettings;
+}
+
+export async function loadWorkSettings() {
+  const payload = await requestApi<WorkSettingsEnvelope>("/api/admin/work-settings", {
+    method: "GET",
+  });
+
+  return {
+    canPersist: payload.canPersist ?? false,
+    githubUsername: payload.githubUsername ?? "",
+    hasGithubToken: payload.hasGithubToken ?? false,
+    source: payload.source ?? "env",
+  } satisfies WorkSettings;
+}
+
+export async function saveWorkSettings(settings: WorkSettingsInput) {
+  const payload = await requestApi<WorkSettingsEnvelope>("/api/admin/work-settings", {
+    body: JSON.stringify(settings),
+    method: "PUT",
+  });
+
+  return {
+    canPersist: payload.canPersist ?? false,
+    githubUsername: payload.githubUsername ?? "",
+    hasGithubToken: payload.hasGithubToken ?? false,
+    source: payload.source ?? "env",
+  } satisfies WorkSettings;
 }

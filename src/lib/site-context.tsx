@@ -22,6 +22,7 @@ import type {
   ProjectData,
   ProjectsSectionData,
   TimelineSectionData,
+  WorkSectionData,
 } from "@/lib/types";
 
 type SiteDataContextValue = {
@@ -39,6 +40,7 @@ type SiteDataContextValue = {
   updateProject: (project: ProjectData) => Promise<void>;
   appendProject: () => Promise<ProjectData>;
   deleteProject: (projectId: string) => Promise<void>;
+  updateWorkSection: (section: WorkSectionData) => Promise<void>;
   updateContact: (contact: ContactData) => Promise<void>;
   updateFooter: (footer: FooterData) => Promise<void>;
   submitMessage: (message: ContactMessageInput) => Promise<void>;
@@ -214,6 +216,13 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
     }));
   };
 
+  const updateWorkSection = async (workSection: WorkSectionData) => {
+    await commit((current) => ({
+      ...current,
+      workSection,
+    }));
+  };
+
   const updateContact = async (contact: ContactData) => {
     await commit((current) => ({
       ...current,
@@ -249,6 +258,7 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
         updateProject,
         appendProject,
         deleteProject,
+        updateWorkSection,
         updateContact,
         updateFooter,
         submitMessage,

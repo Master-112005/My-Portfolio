@@ -5,7 +5,7 @@ import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { useEditMode } from "@/admin/EditMode";
-import { loadContactMailerSettings, saveContactMailerSettings } from "@/lib/api";
+import { loadContactMailerSettings, loadWorkSettings, saveContactMailerSettings, saveWorkSettings } from "@/lib/api";
 import { useSiteData } from "@/lib/site-context";
 import type {
   CertificationItem,
@@ -18,6 +18,8 @@ import type {
   SkillItem,
   SkillLevel,
   SocialLink,
+  WorkSettings,
+  WorkSettingsInput,
 } from "@/lib/types";
 import { createIdCardImageDataUrl, createProjectImageDataUrl } from "@/utils/profile-image";
 
@@ -76,6 +78,13 @@ const emptyMailerSettings: ContactMailerSettings = {
   smtpUser: "",
   source: "env",
   toEmail: "",
+};
+
+const emptyWorkSettings: WorkSettings = {
+  canPersist: false,
+  githubUsername: "",
+  hasGithubToken: false,
+  source: "env",
 };
 
 function serializeLinks(links: SocialLink[]) {
@@ -374,6 +383,14 @@ function buildFormState(
             sectionDescription: data.projectsSection.description,
           };
     }
+    case "work":
+      return {
+        eyebrow: data.workSection.eyebrow,
+        title: data.workSection.title,
+        description: data.workSection.description,
+        githubToken: "",
+        githubUsername: "",
+      };
     case "contact":
       return {
         headline: data.contact.headline,
@@ -457,6 +474,7 @@ export function EditForms() {
     updateProject,
     updateProjectsSection,
     updateTimeline,
+    updateWorkSection,
   } = useSiteData();
   const [formState, setFormState] = useState<FormState>({});
   const [skillGroupsDraft, setSkillGroupsDraft] = useState<SkillGroupDraft[]>([]);
@@ -467,8 +485,12 @@ export function EditForms() {
   const [isProcessingProjectImages, setIsProcessingProjectImages] = useState(false);
   const [isLoadingMailerSettings, setIsLoadingMailerSettings] = useState(false);
   const [isSavingMailerSettings, setIsSavingMailerSettings] = useState(false);
+  const [isLoadingWorkSettings, setIsLoadingWorkSettings] = useState(false);
+  const [isSavingWorkSettings, setIsSavingWorkSettings] = useState(false);
   const [mailerInfo, setMailerInfo] = useState<ContactMailerSettings>(emptyMailerSettings);
+  const [workInfo, setWorkInfo] = useState<WorkSettings>(emptyWorkSettings);
   const [mailerError, setMailerError] = useState<string | null>(null);
+  const [workError, setWorkError] = useState<string | null>(null);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
   const [projectImageError, setProjectImageError] = useState<string | null>(null);
 
@@ -483,8 +505,12 @@ export function EditForms() {
       setIsProcessingProjectImages(false);
       setIsLoadingMailerSettings(false);
       setIsSavingMailerSettings(false);
+      setIsLoadingWorkSettings(false);
+      setIsSavingWorkSettings(false);
       setMailerInfo(emptyMailerSettings);
+      setWorkInfo(emptyWorkSettings);
       setMailerError(null);
+      setWorkError(null);
       setProfileImageError(null);
       setProjectImageError(null);
       return;
@@ -508,6 +534,7 @@ export function EditForms() {
         : [],
     );
     setMailerError(null);
+    setWorkError(null);
     setProfileImageError(null);
     setProjectImageError(null);
 
@@ -515,6 +542,50 @@ export function EditForms() {
       setIsLoadingMailerSettings(false);
       setIsSavingMailerSettings(false);
       setMailerInfo(emptyMailerSettings);
+    }
+
+    if (editor.section !== "work") {
+      setIsLoadingWorkSettings(false);
+      setIsSavingWorkSettings(false);
+      setWorkInfo(emptyWorkSettings);
+    }
+
+    if (editor.section === "work") {
+      let isActive = true;
+      setIsLoadingWorkSettings(true);
+
+      void loadWorkSettings()
+        .then((settings) => {
+          if (!isActive) {
+            return;
+          }
+
+          setWorkInfo(settings);
+          setFormState((current) => ({
+            ...current,
+            githubToken: "",
+            githubUsername: settings.githubUsername,
+          }));
+        })
+        .catch((error) => {
+          if (!isActive) {
+            return;
+          }
+
+          setWorkError(error instanceof Error ? error.message : "Failed to load GitHub work settings.");
+        })
+        .finally(() => {
+          if (isActive) {
+            setIsLoadingWorkSettings(false);
+          }
+        });
+
+      return () => {
+        isActive = false;
+      };
+    }
+
+    if (editor.section !== "mailer") {
       return;
     }
 
@@ -571,6 +642,10 @@ export function EditForms() {
   const setValue = (key: string, value: string) => {
     if (editor.section === "mailer") {
       setMailerError(null);
+    }
+
+    if (editor.section === "work") {
+      setWorkError(null);
     }
 
     setFormState((current) => ({
@@ -905,6 +980,33 @@ export function EditForms() {
         });
         break;
       }
+      case "work": {
+        await updateWorkSection({
+          eyebrow: formState.eyebrow.trim(),
+          title: formState.title.trim(),
+          description: formState.description.trim(),
+        });
+
+        const settings = {
+          githubToken: formState.githubToken.trim(),
+          githubUsername: formState.githubUsername.trim(),
+        } satisfies WorkSettingsInput;
+
+        setIsSavingWorkSettings(true);
+        setWorkError(null);
+
+        try {
+          const savedSettings = await saveWorkSettings(settings);
+          setWorkInfo(savedSettings);
+          closeEditor();
+        } catch (error) {
+          setWorkError(error instanceof Error ? error.message : "Failed to save GitHub work settings.");
+        } finally {
+          setIsSavingWorkSettings(false);
+        }
+
+        return;
+      }
       case "contact":
         await updateContact({
           ...data.contact,
@@ -1002,6 +1104,7 @@ export function EditForms() {
     timeline: "Edit education journey copy",
     education: "Edit education stage",
     projects: "Edit project",
+    work: "Edit my work",
     contact: "Edit contact details",
     mailer: "Edit contact mailer",
     footer: "Edit footer",
@@ -1846,6 +1949,73 @@ export function EditForms() {
                 </>
               ) : null}
 
+              {editor.section === "work" ? (
+                <>
+                  <div className="sm:col-span-2 space-y-2">
+                    <span className="eyebrow">My Work section</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      Edit the visible section copy and the private GitHub settings used for live contribution stats.
+                    </p>
+                  </div>
+                  <Field
+                    label="Section eyebrow"
+                    value={formState.eyebrow ?? ""}
+                    onChange={(value) => setValue("eyebrow", value)}
+                  />
+                  <Field label="Section title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)} />
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Section description"
+                      value={formState.description ?? ""}
+                      onChange={(value) => setValue("description", value)}
+                      multiline
+                    />
+                  </div>
+                  <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                    <p>
+                      Source: <span className="font-semibold text-[color:var(--text)]">{workInfo.source}</span>
+                    </p>
+                    <p>
+                      GitHub token saved: <span className="font-semibold text-[color:var(--text)]">{workInfo.hasGithubToken ? "Yes" : "No"}</span>
+                    </p>
+                    <p>
+                      Persist from edit mode: <span className="font-semibold text-[color:var(--text)]">{workInfo.canPersist ? "Enabled" : "Unavailable"}</span>
+                    </p>
+                    {!workInfo.canPersist ? (
+                      <p className="mt-3 text-amber-300">
+                        Firebase Admin is not configured, so GitHub settings cannot be saved from the UI yet.
+                      </p>
+                    ) : null}
+                  </div>
+                  <Field
+                    label="GitHub username"
+                    value={formState.githubUsername ?? ""}
+                    onChange={(value) => setValue("githubUsername", value)}
+                    placeholder="rakesh"
+                  />
+                  <div>
+                    <label className="space-y-2">
+                      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                        GitHub token
+                      </span>
+                      <input
+                        type="password"
+                        value={formState.githubToken ?? ""}
+                        onChange={(event) => setValue("githubToken", event.target.value)}
+                        placeholder={workInfo.hasGithubToken ? "Leave blank to keep current token" : "Enter GitHub token"}
+                        className="input-surface"
+                      />
+                    </label>
+                  </div>
+                  {isLoadingWorkSettings ? (
+                    <div className="sm:col-span-2 text-sm text-[color:var(--text-soft)]">Loading GitHub settings...</div>
+                  ) : null}
+                  {workError ? (
+                    <div className="sm:col-span-2 text-sm text-rose-300">{workError}</div>
+                  ) : null}
+                </>
+              ) : null}
+
               {editor.section === "mailer" ? (
                 <>
                   <div className="sm:col-span-2 space-y-2">
@@ -2005,7 +2175,10 @@ export function EditForms() {
                   isProcessingProjectImages ||
                   isSavingMailerSettings ||
                   isLoadingMailerSettings ||
-                  (editor.section === "mailer" && !mailerInfo.canPersist)
+                  isSavingWorkSettings ||
+                  isLoadingWorkSettings ||
+                  (editor.section === "mailer" && !mailerInfo.canPersist) ||
+                  (editor.section === "work" && !workInfo.canPersist)
                 }
                 className="rounded-full bg-[color:var(--accent)] px-5 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-wait disabled:opacity-75"
               >
@@ -2013,10 +2186,14 @@ export function EditForms() {
                   ? "Processing image..."
                   : isProcessingProjectImages
                     ? "Processing images..."
-                    : isLoadingMailerSettings
-                      ? "Loading settings..."
+                      : isLoadingMailerSettings
+                        ? "Loading settings..."
+                      : isLoadingWorkSettings
+                        ? "Loading GitHub settings..."
                       : isSavingMailerSettings
                         ? "Saving mailer..."
+                      : isSavingWorkSettings
+                        ? "Saving GitHub settings..."
                     : isSaving
                       ? "Saving..."
                       : "Save changes"}

@@ -3,6 +3,9 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
+import { EditButton } from "@/admin/EditMode";
+import { useSiteData } from "@/lib/site-context";
+
 type CalendarDay = {
   count: number;
   date: string;
@@ -16,23 +19,9 @@ type GithubStats = {
   username: string;
 };
 
-type LeetCodeStats = {
-  calendar: CalendarDay[];
-  profileUrl: string;
-  ranking: number | null;
-  solved: {
-    easy: number;
-    hard: number;
-    medium: number;
-    total: number;
-  };
-  username: string;
-};
-
 type WorkStats = {
   generatedAt: string;
   github: GithubStats | null;
-  leetcode: LeetCodeStats | null;
   messages: string[];
 };
 
@@ -47,19 +36,6 @@ const githubFallback: GithubStats = {
   profileUrl: "https://github.com/",
   totalContributions: 0,
   username: "GitHub",
-};
-
-const leetcodeFallback: LeetCodeStats = {
-  calendar: [],
-  profileUrl: "https://leetcode.com/",
-  ranking: null,
-  solved: {
-    easy: 0,
-    hard: 0,
-    medium: 0,
-    total: 0,
-  },
-  username: "LeetCode",
 };
 
 const weekdays = ["Mon", "Wed", "Fri"];
@@ -158,6 +134,7 @@ function StatTile({ label, value }: { label: string; value: string }) {
 }
 
 export default function MyWorkBlock() {
+  const { data } = useSiteData();
   const [stats, setStats] = useState<WorkStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -197,9 +174,8 @@ export default function MyWorkBlock() {
   }, []);
 
   const github = stats?.github ?? githubFallback;
-  const leetcode = stats?.leetcode ?? leetcodeFallback;
   const hasLiveGithub = Boolean(stats?.github);
-  const hasLiveLeetCode = Boolean(stats?.leetcode);
+  const section = data.workSection;
 
   return (
     <section id="work" className="section-shell">
@@ -210,17 +186,18 @@ export default function MyWorkBlock() {
 
         <div className="relative flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <span className="eyebrow">My work</span>
+            <span className="eyebrow">{section.eyebrow}</span>
             <h2 className="max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-[color:var(--text)] sm:text-4xl">
-              Code activity and problem solving.
+              {section.title}
             </h2>
+            <EditButton section="work" label="Edit my work" />
           </div>
           <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
-            Live activity from GitHub and LeetCode, fetched through a private server route.
+            {section.description}
           </p>
         </div>
 
-        <div className="relative mt-5 grid min-w-0 gap-4 lg:grid-cols-2">
+        <div className="relative mt-5 grid min-w-0 gap-4">
           <motion.article
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -250,41 +227,6 @@ export default function MyWorkBlock() {
 
             <div className="mt-4">
               <Heatmap accent="#22c55e" days={github.calendar} emptyLabel="Waiting for GitHub credentials" />
-            </div>
-          </motion.article>
-
-          <motion.article
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.25 }}
-            transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="min-w-0 rounded-[1.45rem] border border-[color:var(--line)] bg-[color:var(--bg-elevated)]/70 p-4 shadow-[0_18px_46px_rgba(2,6,23,0.12)] backdrop-blur sm:p-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-mono text-[0.68rem] uppercase tracking-[0.26em] text-[color:var(--text-soft)]">LeetCode progress</p>
-                <h3 className="mt-1 truncate text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text)]">@{leetcode.username}</h3>
-              </div>
-              <a
-                href={leetcode.profileUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-[color:var(--line)] px-3.5 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--accent)]"
-              >
-                Open profile
-              </a>
-            </div>
-
-            <div className="mt-4 grid grid-cols-3 gap-2.5">
-              <StatTile label="Solved" value={hasLiveLeetCode ? formatNumber(leetcode.solved.total) : "Setup"} />
-              <StatTile label="Ranking" value={hasLiveLeetCode ? formatNumber(leetcode.ranking) : "-"} />
-              <StatTile label="Easy" value={formatNumber(leetcode.solved.easy)} />
-              <StatTile label="Medium" value={formatNumber(leetcode.solved.medium)} />
-              <StatTile label="Hard" value={formatNumber(leetcode.solved.hard)} />
-            </div>
-
-            <div className="mt-4">
-              <Heatmap accent="#f59e0b" days={leetcode.calendar} emptyLabel="Waiting for LeetCode username" />
             </div>
           </motion.article>
         </div>

@@ -11,6 +11,7 @@ import type {
   SkillLevel,
   ProjectData,
   TimelineSectionData,
+  WorkSectionData,
 } from "@/lib/types";
 
 function normalizeSkillLevel(value: unknown): SkillLevel {
@@ -541,6 +542,12 @@ The design favors calm density: enough information to act, without overwhelming 
   },
 ];
 
+const workSection: WorkSectionData = {
+  eyebrow: "My work",
+  title: "Code activity.",
+  description: "Live GitHub contribution activity fetched through a private server route.",
+};
+
 const contact: ContactData = {
   headline: "Let us build something with texture, motion, and strong engineering underneath.",
   email: "rakesh@example.com",
@@ -596,6 +603,7 @@ export const defaultPortfolioData: PortfolioData = {
   education,
   projectsSection,
   projects,
+  workSection,
   contact,
   footer,
 };
@@ -657,6 +665,10 @@ export function mergePortfolioData(partial?: Partial<PortfolioData>): PortfolioD
         customSections: item.customSections ?? [],
       };
     }),
+    workSection: {
+      ...base.workSection,
+      ...partial.workSection,
+    },
     contact: {
       ...base.contact,
       ...partial.contact,
