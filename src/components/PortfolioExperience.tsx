@@ -12,6 +12,7 @@ import HeroSection from "@/components/Hero/HeroSection";
 import SkillsBlock from "@/components/Hero/SkillsBlock";
 import TimelineSection from "@/components/Timeline/TimelineSection";
 import ThemeToggle from "@/components/ThemeToggle";
+import MyWorkBlock from "@/components/Work/MyWorkBlock";
 import { useSiteData } from "@/lib/site-context";
 
 const Desktop = dynamic(() => import("@/components/Projects/Desktop"), {
@@ -54,6 +55,7 @@ export default function PortfolioExperience() {
         <HeroSection />
         <TimelineSection />
         <Desktop />
+        <MyWorkBlock />
         <SkillsBlock section={data.profile.skillsSection} groups={data.profile.skillGroups} />
         <CertificationsBlock
           section={data.profile.certificationsSection}
