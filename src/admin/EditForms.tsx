@@ -5,7 +5,13 @@ import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { useEditMode } from "@/admin/EditMode";
-import { loadContactMailerSettings, loadWorkSettings, saveContactMailerSettings, saveWorkSettings } from "@/lib/api";
+import {
+  loadContactMailerSettings,
+  loadWorkSettings,
+  saveContactMailerSettings,
+  saveWorkSettings,
+  uploadResumePdf,
+} from "@/lib/api";
 import { useSiteData } from "@/lib/site-context";
 import type {
   CertificationItem,
@@ -401,6 +407,13 @@ function buildFormState(
         availability: data.contact.availability,
         socialLinks: serializeLinks(data.contact.socialLinks),
       };
+    case "resume":
+      return {
+        title: data.resume.title,
+        fileName: data.resume.fileName,
+        fileHref: data.resume.fileHref,
+        updatedAt: data.resume.updatedAt,
+      };
     case "mailer":
       return {
         fromEmail: "",
@@ -468,6 +481,7 @@ export function EditForms() {
     deleteEducationItem,
     deleteProject,
     updateContact,
+    updateResume,
     updateEducationItem,
     updateFooter,
     updateProfile,
@@ -493,6 +507,8 @@ export function EditForms() {
   const [workError, setWorkError] = useState<string | null>(null);
   const [profileImageError, setProfileImageError] = useState<string | null>(null);
   const [projectImageError, setProjectImageError] = useState<string | null>(null);
+  const [resumeUploadError, setResumeUploadError] = useState<string | null>(null);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
 
   useEffect(() => {
     if (!editor) {
@@ -513,6 +529,8 @@ export function EditForms() {
       setWorkError(null);
       setProfileImageError(null);
       setProjectImageError(null);
+      setResumeUploadError(null);
+      setIsUploadingResume(false);
       return;
     }
 
@@ -537,6 +555,7 @@ export function EditForms() {
     setWorkError(null);
     setProfileImageError(null);
     setProjectImageError(null);
+    setResumeUploadError(null);
 
     if (editor.section !== "mailer") {
       setIsLoadingMailerSettings(false);
@@ -646,6 +665,10 @@ export function EditForms() {
 
     if (editor.section === "work") {
       setWorkError(null);
+    }
+
+    if (editor.section === "resume") {
+      setResumeUploadError(null);
     }
 
     setFormState((current) => ({
@@ -870,6 +893,33 @@ export function EditForms() {
     }
   };
 
+  const handleResumeUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingResume(true);
+    setResumeUploadError(null);
+
+    try {
+      const uploadedResume = await uploadResumePdf(file);
+
+      setFormState((current) => ({
+        ...current,
+        fileHref: uploadedResume.fileHref,
+        fileName: uploadedResume.fileName,
+        updatedAt: uploadedResume.updatedAt,
+      }));
+    } catch (error) {
+      setResumeUploadError(error instanceof Error ? error.message : "Failed to upload the resume PDF.");
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
+
   const handleSave = async () => {
     switch (editor.section) {
       case "profile":
@@ -1019,6 +1069,15 @@ export function EditForms() {
           socialLinks: parseLinks(formState.socialLinks),
         });
         break;
+      case "resume":
+        await updateResume({
+          ...data.resume,
+          title: formState.title.trim() || "Resume",
+          fileName: formState.fileName.trim() || "resume.pdf",
+          fileHref: formState.fileHref.trim(),
+          updatedAt: formState.updatedAt.trim(),
+        });
+        break;
       case "mailer": {
         const settings = {
           fromEmail: formState.fromEmail.trim(),
@@ -1106,6 +1165,7 @@ export function EditForms() {
     projects: "Edit project",
     work: "Edit my work",
     contact: "Edit contact details",
+    resume: "Edit resume",
     mailer: "Edit contact mailer",
     footer: "Edit footer",
   } as const;
@@ -2016,6 +2076,71 @@ export function EditForms() {
                 </>
               ) : null}
 
+              {editor.section === "resume" ? (
+                <>
+                  <div className="sm:col-span-2 space-y-2">
+                    <span className="eyebrow">Resume PDF</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      Upload a PDF for the fixed View resume button. The file is replaced immediately, then the public path is saved with the portfolio data when you save changes.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Resume title"
+                      value={formState.title ?? ""}
+                      onChange={(value) => setValue("title", value)}
+                      placeholder="Resume"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                          Current PDF
+                        </p>
+                        <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                          {formState.fileHref
+                            ? `${formState.fileName || "resume.pdf"}${formState.updatedAt ? ` updated ${new Date(formState.updatedAt).toLocaleString()}` : ""}`
+                            : "No resume PDF uploaded yet."}
+                        </p>
+                      </div>
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110">
+                        <span>{isUploadingResume ? "Uploading..." : "Upload PDF"}</span>
+                        <input
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          onChange={(event) => void handleResumeUpload(event)}
+                          className="sr-only"
+                          disabled={isUploadingResume}
+                        />
+                      </label>
+                    </div>
+                    {resumeUploadError ? (
+                      <p className="mt-4 text-sm leading-6 text-rose-300">{resumeUploadError}</p>
+                    ) : null}
+                    {formState.fileHref ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <a
+                          href={formState.fileHref}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-full border border-[color:var(--line)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--accent)]"
+                        >
+                          Preview PDF
+                        </a>
+                        <a
+                          href={formState.fileHref}
+                          download={formState.fileName || "resume.pdf"}
+                          className="rounded-full border border-[color:var(--line)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--accent)]"
+                        >
+                          Download PDF
+                        </a>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
+
               {editor.section === "mailer" ? (
                 <>
                   <div className="sm:col-span-2 space-y-2">
@@ -2173,6 +2298,7 @@ export function EditForms() {
                   isSaving ||
                   isProcessingProfileImage ||
                   isProcessingProjectImages ||
+                  isUploadingResume ||
                   isSavingMailerSettings ||
                   isLoadingMailerSettings ||
                   isSavingWorkSettings ||
@@ -2186,6 +2312,8 @@ export function EditForms() {
                   ? "Processing image..."
                   : isProcessingProjectImages
                     ? "Processing images..."
+                    : isUploadingResume
+                      ? "Uploading resume..."
                       : isLoadingMailerSettings
                         ? "Loading settings..."
                       : isLoadingWorkSettings

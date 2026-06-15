@@ -139,6 +139,13 @@ export type FooterData = {
   links: SocialLink[];
 };
 
+export type ResumeData = {
+  title: string;
+  fileName: string;
+  fileHref: string;
+  updatedAt: string;
+};
+
 export type ProjectsSectionData = SectionIntroData;
 
 export type WorkSectionData = SectionIntroData;
@@ -151,6 +158,7 @@ export type PortfolioData = {
   projects: ProjectData[];
   workSection: WorkSectionData;
   contact: ContactData;
+  resume: ResumeData;
   footer: FooterData;
 };
 
@@ -163,6 +171,7 @@ export type EditableSection =
   | "projects"
   | "work"
   | "contact"
+  | "resume"
   | "mailer"
   | "footer";
 

@@ -10,6 +10,7 @@ import Footer from "@/components/Footer/Footer";
 import CertificationsBlock from "@/components/Hero/CertificationsBlock";
 import HeroSection from "@/components/Hero/HeroSection";
 import SkillsBlock from "@/components/Hero/SkillsBlock";
+import ResumeButton from "@/components/ResumeButton";
 import TimelineSection from "@/components/Timeline/TimelineSection";
 import ThemeToggle from "@/components/ThemeToggle";
 import MyWorkBlock from "@/components/Work/MyWorkBlock";
@@ -33,6 +34,7 @@ export default function PortfolioExperience() {
 
   return (
     <div className="relative overflow-x-clip pb-16">
+      <ResumeButton />
       <ThemeToggle />
 
       <div className="pointer-events-none fixed inset-0 -z-10">

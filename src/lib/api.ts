@@ -42,6 +42,13 @@ type WorkSettingsEnvelope = {
   source?: "env" | "firestore";
 };
 
+type ResumeUploadEnvelope = {
+  error?: string;
+  fileHref?: string;
+  fileName?: string;
+  updatedAt?: string;
+};
+
 type ApiEnvelope = {
   authenticated?: boolean;
   data?: Partial<PortfolioData>;
@@ -211,4 +218,32 @@ export async function saveWorkSettings(settings: WorkSettingsInput) {
     hasGithubToken: payload.hasGithubToken ?? false,
     source: payload.source ?? "env",
   } satisfies WorkSettings;
+}
+
+export async function uploadResumePdf(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/admin/resume", {
+    body: formData,
+    cache: "no-store",
+    credentials: "same-origin",
+    method: "POST",
+  });
+  const payload = (await parseJsonResponse(response)) as ResumeUploadEnvelope;
+
+  if (!response.ok) {
+    const error = new Error(
+      payload.error || `Resume upload failed with status ${response.status}.`,
+    ) as ApiRequestError;
+
+    error.status = response.status;
+    throw error;
+  }
+
+  return {
+    fileHref: payload.fileHref ?? "",
+    fileName: payload.fileName ?? file.name,
+    updatedAt: payload.updatedAt ?? new Date().toISOString(),
+  };
 }

@@ -6,6 +6,7 @@ import type {
   PortfolioData,
   ProfileData,
   ProjectsSectionData,
+  ResumeData,
   SkillGroup,
   SkillItem,
   SkillLevel,
@@ -574,6 +575,13 @@ const contact: ContactData = {
   ],
 };
 
+const resume: ResumeData = {
+  title: "Resume",
+  fileName: "resume.pdf",
+  fileHref: "",
+  updatedAt: "",
+};
+
 const footer: FooterData = {
   note: "Designed as an interactive narrative instead of a flat portfolio.",
   quote: "Good software should feel engineered and directed.",
@@ -605,6 +613,7 @@ export const defaultPortfolioData: PortfolioData = {
   projects,
   workSection,
   contact,
+  resume,
   footer,
 };
 
@@ -673,6 +682,10 @@ export function mergePortfolioData(partial?: Partial<PortfolioData>): PortfolioD
       ...base.contact,
       ...partial.contact,
       socialLinks: partial.contact?.socialLinks ?? base.contact.socialLinks,
+    },
+    resume: {
+      ...base.resume,
+      ...partial.resume,
     },
     footer: {
       ...base.footer,

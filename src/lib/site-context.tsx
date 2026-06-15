@@ -21,6 +21,7 @@ import type {
   ProfileData,
   ProjectData,
   ProjectsSectionData,
+  ResumeData,
   TimelineSectionData,
   WorkSectionData,
 } from "@/lib/types";
@@ -42,6 +43,7 @@ type SiteDataContextValue = {
   deleteProject: (projectId: string) => Promise<void>;
   updateWorkSection: (section: WorkSectionData) => Promise<void>;
   updateContact: (contact: ContactData) => Promise<void>;
+  updateResume: (resume: ResumeData) => Promise<void>;
   updateFooter: (footer: FooterData) => Promise<void>;
   submitMessage: (message: ContactMessageInput) => Promise<void>;
 };
@@ -230,6 +232,13 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
     }));
   };
 
+  const updateResume = async (resume: ResumeData) => {
+    await commit((current) => ({
+      ...current,
+      resume,
+    }));
+  };
+
   const updateFooter = async (footer: FooterData) => {
     await commit((current) => ({
       ...current,
@@ -260,6 +269,7 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
         deleteProject,
         updateWorkSection,
         updateContact,
+        updateResume,
         updateFooter,
         submitMessage,
       }}
