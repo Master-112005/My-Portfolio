@@ -123,19 +123,7 @@ export default function TimelineSection() {
               {timeline.description}
             </p>
           ) : null}
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-[color:var(--line)] bg-[color:var(--surface)]/56 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-[color:var(--text-soft)]">
-              Education Path
-            </span>
-            <span className="rounded-full border border-[color:var(--line)] bg-[color:var(--surface)]/56 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-[color:var(--accent)]">
-              {progressPercent}% viewed
-            </span>
-            {activeStage ? (
-              <span className="rounded-full border border-[color:var(--line)] bg-[color:var(--surface)]/56 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-[color:var(--text-soft)]">
-                {activeStage.title}
-              </span>
-            ) : null}
-          </div>
+          
         </div>
 
         <div className="relative" style={{ minHeight: `${timelineHeightRem}rem` }}>
