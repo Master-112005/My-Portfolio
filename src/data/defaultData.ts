@@ -279,6 +279,7 @@ const education: EducationItem[] = [
       "Started noticing that design and problem solving were connected, even before software entered the picture.",
     ],
     accent: "#f97316",
+    href: "",
   },
   {
     id: "high-school",
@@ -293,6 +294,7 @@ const education: EducationItem[] = [
       "Started building small websites and experimenting with visual presentation on the web.",
     ],
     accent: "#14b8a6",
+    href: "",
   },
   {
     id: "intermediate",
@@ -307,6 +309,7 @@ const education: EducationItem[] = [
       "Began connecting abstract theory with the practical systems used in modern software.",
     ],
     accent: "#8b5cf6",
+    href: "",
   },
   {
     id: "btech",
@@ -321,6 +324,7 @@ const education: EducationItem[] = [
       "Became interested in immersive interfaces where engineering quality and storytelling reinforce each other.",
     ],
     accent: "#3b82f6",
+    href: "",
   },
 ];
 

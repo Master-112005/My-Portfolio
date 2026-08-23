@@ -46,6 +46,10 @@ type SiteDataContextValue = {
   updateResume: (resume: ResumeData) => Promise<void>;
   updateFooter: (footer: FooterData) => Promise<void>;
   submitMessage: (message: ContactMessageInput) => Promise<void>;
+  getViewCount: (period: "today" | "week" | "month") => number;
+  recordView: (period: "today" | "week" | "month", viewerEmail?: string) => void;
+  setViewerEmail: (email: string) => void;
+  viewerEmails: Record<string, string>;
 };
 
 const SiteDataContext = createContext<SiteDataContextValue | null>(null);
@@ -60,6 +64,7 @@ function createEducationItem(order: number): EducationItem {
     summary: "Add a short summary for this stage.",
     details: ["Add a detail line."],
     accent: "#3b82f6",
+    href: "",
   };
 }
 
@@ -92,6 +97,17 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const dataRef = useRef(data);
+
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({
+    today: typeof window !== "undefined" ? parseInt(localStorage.getItem("views-today") || "0") : 0,
+    week: typeof window !== "undefined" ? parseInt(localStorage.getItem("views-week") || "0") : 0,
+    month: typeof window !== "undefined" ? parseInt(localStorage.getItem("views-month") || "0") : 0,
+  });
+  const [viewerEmails, setViewerEmails] = useState<Record<string, string>>({
+    today: typeof window !== "undefined" ? localStorage.getItem("viewer-email-today") || "" : "",
+    week: typeof window !== "undefined" ? localStorage.getItem("viewer-email-week") || "" : "",
+    month: typeof window !== "undefined" ? localStorage.getItem("viewer-email-month") || "" : "",
+  });
 
   useEffect(() => {
     dataRef.current = data;
@@ -135,6 +151,39 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const getViewCount = (period: "today" | "week" | "month") => {
+    return viewCounts[period];
+  };
+
+  const recordView = (period: "today" | "week" | "month", viewerEmail?: string) => {
+    setViewCounts((prev) => {
+      const newCounts = { ...prev, [period]: (prev[period] || 0) + 1 };
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`views-${period}`, String(newCounts[period]));
+      }
+      return newCounts;
+    });
+    if (viewerEmail) {
+      setViewerEmails((prev) => {
+        const newEmails = { ...prev, [period]: viewerEmail };
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`viewer-email-${period}`, viewerEmail);
+        }
+        return newEmails;
+      });
+    }
+  };
+
+  const setViewerEmail = (email: string) => {
+    setViewerEmails((prev) => {
+      const newEmails = { ...prev, today: email };
+      if (typeof window !== "undefined") {
+        localStorage.setItem("viewer-email-today", email);
+      }
+      return newEmails;
+    });
   };
 
   const updateProfile = async (profile: ProfileData) => {
@@ -272,6 +321,10 @@ export function SiteDataProvider({ children }: PropsWithChildren) {
         updateResume,
         updateFooter,
         submitMessage,
+        getViewCount,
+        recordView,
+        setViewerEmail,
+        viewerEmails,
       }}
     >
       {children}

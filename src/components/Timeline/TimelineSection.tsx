@@ -168,6 +168,7 @@ export default function TimelineSection() {
                   item={item}
                   side={index % 2 === 0 ? "left" : "right"}
                   isActive={activeStageId === item.id}
+                  isEditMode={isEditMode}
                   onSelect={() => handleSelectStage(item.id)}
                 />
               </div>

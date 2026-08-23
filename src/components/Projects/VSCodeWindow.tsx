@@ -127,7 +127,7 @@ export default function VSCodeWindow({
   const features = project.features.map((feature) => feature.trim()).filter(Boolean);
   const fileTree = project.fileTree.map((file) => file.trim()).filter(Boolean);
   const codeSnippet = project.codeSnippet.trim();
-  const images = project.images.filter((image) => image.src.trim());
+  const media = project.images.filter((image) => image.src.trim());
   const customSections = project.customSections
     .map((section) => ({
       id: section.id.trim(),
@@ -151,7 +151,7 @@ export default function VSCodeWindow({
     {
       id: "gallery",
       label: "Screenshots",
-      meta: images.length ? `${images.length} images` : "No screenshots",
+      meta: media.length ? `${media.length} media` : "No media",
       kind: "gallery",
     },
     {
@@ -178,8 +178,8 @@ export default function VSCodeWindow({
   ];
 
   const activeSection = sections.find((section) => section.id === activeSectionId) ?? sections[0];
-  const clampedImageIndex = Math.min(activeImageIndex, Math.max(0, images.length - 1));
-  const activeImage = images[clampedImageIndex] ?? null;
+  const clampedImageIndex = Math.min(activeImageIndex, Math.max(0, media.length - 1));
+  const activeImage = media[clampedImageIndex] ?? null;
   const shellClassName =
     mode === "maximized"
       ? "inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)]"
@@ -322,7 +322,7 @@ export default function VSCodeWindow({
 
                         <div className="grid gap-3 sm:grid-cols-3">
                           <StatCard label="Features" value={features.length} />
-                          <StatCard label="Screens" value={images.length} />
+                          <StatCard label="Media" value={media.length} />
                           <StatCard label="Stack" value={stack.length} />
                         </div>
                       </div>
@@ -395,20 +395,32 @@ export default function VSCodeWindow({
                 ) : null}
 
                 {activeSection.kind === "gallery" ? (
-                  images.length ? (
+                  media.length ? (
                     <div className="space-y-6">
                       {activeImage ? (
                         <section className="overflow-hidden rounded-[1.55rem] border border-slate-700/70 bg-[#0a101a]">
                           <div className="aspect-[16/9] overflow-hidden">
-                            <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
+                            {activeImage.type === "video" ? (
+                              <video
+                                src={activeImage.src}
+                                className="h-full w-full object-cover"
+                                autoPlay
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
+                            )}
                           </div>
                           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-4">
                             <div>
                               <p className="text-sm font-medium text-slate-100">
-                                {activeImage.caption.trim() || activeImage.alt.trim() || "Project screenshot"}
+                                {activeImage.caption.trim() || activeImage.alt.trim() || "Project media"}
                               </p>
                               <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">
-                                Screenshot {clampedImageIndex + 1} of {images.length}
+                                {activeImage.type === "video"
+                                  ? `Video ${clampedImageIndex + 1} of ${media.length}`
+                                  : `Screenshot ${clampedImageIndex + 1} of ${media.length}`}
                               </p>
                             </div>
                             <span className="rounded-full border border-slate-700/70 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">
@@ -419,9 +431,9 @@ export default function VSCodeWindow({
                       ) : null}
 
                       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        {images.map((image, index) => (
+                        {media.map((item, index) => (
                           <button
-                            key={image.id}
+                            key={item.id}
                             type="button"
                             onClick={() => setActiveImageIndex(index)}
                             className={`overflow-hidden rounded-[1.25rem] border text-left transition ${
@@ -431,11 +443,21 @@ export default function VSCodeWindow({
                             }`}
                           >
                             <div className="aspect-[16/10] overflow-hidden bg-[#0a101a]">
-                              <img src={image.src} alt={image.alt} className="h-full w-full object-cover" loading="lazy" />
+                              {item.type === "video" ? (
+                                <video
+                                  src={item.src}
+                                  className="h-full w-full object-cover"
+                                  autoPlay
+                                  muted
+                                  playsInline
+                                />
+                              ) : (
+                                <img src={item.src} alt={item.alt} className="h-full w-full object-cover" loading="lazy" />
+                              )}
                             </div>
                             <div className="px-4 py-3">
                               <p className="line-clamp-1 text-sm font-medium text-slate-100">
-                                {image.caption.trim() || image.alt.trim() || `Screenshot ${index + 1}`}
+                                {item.caption.trim() || item.alt.trim() || `${item.type === "video" ? "Video" : "Screenshot"} ${index + 1}`}
                               </p>
                               <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-slate-500">
                                 Click to preview
@@ -447,7 +469,7 @@ export default function VSCodeWindow({
                     </div>
                   ) : (
                     <section className="rounded-[1.5rem] border border-dashed border-slate-700/70 bg-slate-950/42 px-5 py-8 text-sm leading-7 text-slate-400">
-                      Add one or more screenshots in edit mode to populate this view.
+                      Add one or more images or videos in edit mode to populate this view.
                     </section>
                   )
                 ) : null}

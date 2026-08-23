@@ -27,10 +27,11 @@ import type {
   WorkSettings,
   WorkSettingsInput,
 } from "@/lib/types";
-import { createIdCardImageDataUrl, createProjectImageDataUrl } from "@/utils/profile-image";
+import { createIdCardImageDataUrl, createProjectImageDataUrl, createProjectVideoDataUrl } from "@/utils/profile-image";
 
 type FormState = Record<string, string>;
 const MAX_PROJECT_IMAGES = 6;
+const MAX_PROJECT_MEDIA = 6;
 
 const DEFAULT_SKILL_LEVEL: SkillLevel = "good";
 const skillLevelOptions: SkillLevel[] = ["linear", "better", "good", "advanced"];
@@ -65,6 +66,7 @@ type ProjectImageDraft = {
   src: string;
   alt: string;
   caption: string;
+  type: "image" | "video";
 };
 
 type ProjectCustomSectionDraft = {
@@ -243,6 +245,7 @@ function createProjectImageDraft(image?: ProjectImage, index = 0): ProjectImageD
     src: image?.src ?? "",
     alt: image?.alt ?? "",
     caption: image?.caption ?? "",
+    type: image?.type ?? "image",
   };
 }
 
@@ -259,12 +262,13 @@ function normalizeProjectImageDrafts(images: ProjectImageDraft[]) {
         return null;
       }
 
-      return {
-        id: image.id,
-        src,
-        alt: image.alt.trim(),
-        caption: image.caption.trim(),
-      };
+return {
+      id: image.id,
+      src,
+      alt: image.alt.trim(),
+      caption: image.caption.trim(),
+      type: image.type ?? "image",
+    };
     })
     .filter((image): image is ProjectImage => Boolean(image));
 }
@@ -852,10 +856,10 @@ export function EditForms() {
       return;
     }
 
-    const remainingSlots = Math.max(0, MAX_PROJECT_IMAGES - projectImagesDraft.length);
+    const remainingSlots = Math.max(0, MAX_PROJECT_MEDIA - projectImagesDraft.length);
 
     if (!remainingSlots) {
-      setProjectImageError(`Only ${MAX_PROJECT_IMAGES} project images can be stored for a single project.`);
+      setProjectImageError(`Only ${MAX_PROJECT_MEDIA} project media (images + videos) can be stored for a single project.`);
       return;
     }
 
@@ -867,27 +871,38 @@ export function EditForms() {
     setProjectImageError(null);
 
     try {
-      const processedImages: ProjectImageDraft[] = [];
+      const processedMedia: ProjectImageDraft[] = [];
 
       for (const [index, file] of acceptedFiles.entries()) {
-        const processedImage = await createProjectImageDataUrl(file);
+        let processedSrc: string;
+        let mediaType: "image" | "video";
+
+        if (file.type.startsWith("video/")) {
+          processedSrc = await createProjectVideoDataUrl(file);
+          mediaType = "video";
+        } else {
+          processedSrc = await createProjectImageDataUrl(file);
+          mediaType = "image";
+        }
+
         const order = projectImagesDraft.length + index + 1;
 
-        processedImages.push({
-          id: `project-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          src: processedImage,
-          alt: `${projectName} screenshot ${order}`,
-          caption: `${projectName} view ${order}`,
+        processedMedia.push({
+          id: `project-media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          src: processedSrc,
+          alt: `${projectName} ${mediaType === "image" ? "screenshot" : "video"} ${order}`,
+          caption: `${projectName} ${mediaType === "image" ? "view" : "clip"} ${order}`,
+          type: mediaType,
         });
       }
 
-      setProjectImagesDraft((current) => [...current, ...processedImages]);
+      setProjectImagesDraft((current) => [...current, ...processedMedia]);
 
       if (acceptedFiles.length < files.length) {
-        setProjectImageError(`Only the first ${remainingSlots} image(s) were added. Limit: ${MAX_PROJECT_IMAGES} images per project.`);
+        setProjectImageError(`Only the first ${remainingSlots} file(s) were added. Limit: ${MAX_PROJECT_MEDIA} media items per project.`);
       }
     } catch (error) {
-      setProjectImageError(error instanceof Error ? error.message : "Failed to process the uploaded project image.");
+      setProjectImageError(error instanceof Error ? error.message : "Failed to process the uploaded project media.");
     } finally {
       setIsProcessingProjectImages(false);
     }

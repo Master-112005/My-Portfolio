@@ -87,6 +87,7 @@ export type EducationItem = {
   summary: string;
   details: string[];
   accent: string;
+  href: string;
 };
 
 export type ProjectImage = {
@@ -94,6 +95,7 @@ export type ProjectImage = {
   src: string;
   alt: string;
   caption: string;
+  type: "image" | "video";
 };
 
 export type ProjectCustomSection = {

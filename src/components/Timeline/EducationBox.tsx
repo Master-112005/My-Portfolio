@@ -8,6 +8,7 @@ import type { EducationItem } from "@/lib/types";
 type EducationBoxProps = {
   index: number;
   isActive: boolean;
+  isEditMode: boolean;
   item: EducationItem;
   onSelect: () => void;
   side: "left" | "right";
@@ -16,6 +17,7 @@ type EducationBoxProps = {
 export default function EducationBox({
   index,
   isActive,
+  isEditMode,
   item,
   onSelect,
   side,
@@ -61,7 +63,9 @@ export default function EducationBox({
         }}
       />
 
-      <div className="absolute right-5 top-5 z-10 flex flex-col items-end gap-2">
+      <div className={`absolute right-5 top-5 z-10 flex flex-col items-end gap-2 ${
+          isEditMode ? "animate-pulse" : ""
+        }`}>
         <div
         className="rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em]"
         style={{
@@ -71,6 +75,16 @@ export default function EducationBox({
         >
           {isActive ? "Opened" : "Locked"}
         </div>
+        {item.href ? (
+          <a
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-[color:var(--accent)] transition hover:underline"
+          >
+            {item.href.startsWith("http") ? "Open Link" : "Custom Link"}
+          </a>
+        ) : null}
         <EditButton section="education" itemId={item.id} label="Edit stage" />
       </div>
 
