@@ -18,7 +18,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Interactive Storytelling Portfolio",
+  title: "Rakesh,s Portfolio",
   description: "A cinematic developer portfolio with interactive storytelling, desktop exploration, and inline editing.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   openGraph: {
