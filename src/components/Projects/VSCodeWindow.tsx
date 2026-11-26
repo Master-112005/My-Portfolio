@@ -150,7 +150,7 @@ export default function VSCodeWindow({
     },
     {
       id: "gallery",
-      label: "Screenshots",
+      label: "Media",
       meta: media.length ? `${media.length} media` : "No media",
       kind: "gallery",
     },
@@ -372,21 +372,34 @@ export default function VSCodeWindow({
                     {activeImage ? (
                       <section className="overflow-hidden rounded-[1.55rem] border border-slate-700/70 bg-[#0a101a]">
                         <div className="aspect-[16/9] overflow-hidden">
-                          <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
+                          {activeImage.type === "video" ? (
+                            <video
+                              src={activeImage.src}
+                              className="h-full w-full object-cover"
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                            />
+                          ) : (
+                            <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-cover" />
+                          )}
                         </div>
                         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-700/70 px-4 py-4">
                           <div>
                             <p className="text-sm font-medium text-slate-100">
-                              {activeImage.caption.trim() || activeImage.alt.trim() || "Project preview"}
+                              {activeImage.caption.trim() || activeImage.alt.trim() || "Project media preview"}
                             </p>
-                            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">Featured screenshot</p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">
+                              Featured {activeImage.type === "video" ? "video" : "screenshot"}
+                            </p>
                           </div>
                           <button
                             type="button"
                             onClick={() => setActiveSectionId("gallery")}
                             className="rounded-full border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
                           >
-                            View all screenshots
+                            View all media
                           </button>
                         </div>
                       </section>
@@ -405,6 +418,7 @@ export default function VSCodeWindow({
                                 src={activeImage.src}
                                 className="h-full w-full object-cover"
                                 autoPlay
+                                loop
                                 muted
                                 playsInline
                               />
@@ -447,9 +461,9 @@ export default function VSCodeWindow({
                                 <video
                                   src={item.src}
                                   className="h-full w-full object-cover"
-                                  autoPlay
                                   muted
                                   playsInline
+                                  preload="metadata"
                                 />
                               ) : (
                                 <img src={item.src} alt={item.alt} className="h-full w-full object-cover" loading="lazy" />

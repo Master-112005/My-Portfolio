@@ -1,29 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
 import { EditButton } from "@/admin/EditMode";
 import { useSiteData } from "@/lib/site-context";
 
 export default function Footer() {
-  const { data } = useSiteData();
+  const { data, getViewCount, viewerEmails } = useSiteData();
   const { footer } = data;
   const links = footer.links.filter((link) => link.label.trim() && link.href.trim());
   const note = footer.note.trim();
   const quote = footer.quote.trim();
   const copyrightLabel = footer.copyrightLabel.trim();
-  const { getViewCount, recordView, viewerEmails } = useSiteData();
 
   const todayViews = getViewCount("today");
   const weekViews = getViewCount("week");
   const monthViews = getViewCount("month");
 
   const [showAnalytics, setShowAnalytics] = useState(false);
-
-  useEffect(() => {
-    // Initialize viewer emails from localStorage on mount
-    const storedEmails = viewerEmails;
-  }, [viewerEmails]);
 
   return (
     <footer className="section-shell">
@@ -59,25 +54,10 @@ export default function Footer() {
                 {copyrightLabel}
               </p>
             ) : null}
-            <div className="mt-4 flex items-center gap-2">
-              <button
-                onClick={() => setShowAnalytics(true)}
-                className="absolute top-4 right-4 rounded-full border border-[color:var(--line)] bg-transparent px-3 py-1 text-xs text-[color:var(--text-soft)] transition hover:opacity-50 data-[state=open]:opacity-100"
-                aria-label="View analytics"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M10 3a1 1 0 011 1v2a1 1 0 11-2 0V4a1 1 0 011-1zm0 3a1 1 0 011 1v6a1 1 0 11-2 0V6a1 1 0 011-1zm0 3a1 1 0 011 1v10a1 1 0 11-2 0V12a1 1 0 011-1z" />
-                </svg>
-              </button>
-            </div>
             <button
+              type="button"
               onClick={() => setShowAnalytics(true)}
-              className="absolute top-4 right-4 rounded-full border border-[color:var(--line)] bg-transparent px-3 py-1 text-xs text-[color:var(--text-soft)] transition hover:opacity-50 data-[state=open]:opacity-100"
+              className="absolute right-4 top-4 rounded-full border border-transparent bg-transparent p-2 text-[color:var(--text-soft)] opacity-20 transition hover:border-[color:var(--line)] hover:opacity-100"
               aria-label="View analytics"
             >
               <svg
@@ -128,7 +108,7 @@ export default function Footer() {
                       <p className="mt-1 text-slate-300">{todayViews}</p>
                     </div>
                     <div>
-                      <p className="font-medium text-week">Week</p>
+                      <p className="font-medium text-white">Week</p>
                       <p className="mt-1 text-slate-300">{weekViews}</p>
                     </div>
                     <div>

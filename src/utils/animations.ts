@@ -1,10 +1,3 @@
-export const springTransition = {
-  type: "spring",
-  stiffness: 180,
-  damping: 20,
-  mass: 0.8,
-} as const;
-
 export const hangingBadgePhysics = {
   dragLimit: 160,
   maxSwing: 14,
@@ -45,18 +38,6 @@ export const staggerParentVariant = {
     transition: {
       staggerChildren: 0.08,
       delayChildren: 0.1,
-    },
-  },
-} as const;
-
-export const gentleFloatVariant = {
-  initial: { y: 0 },
-  animate: {
-    y: [0, -10, 0],
-    transition: {
-      duration: 5.5,
-      repeat: Number.POSITIVE_INFINITY,
-      ease: "easeInOut",
     },
   },
 } as const;

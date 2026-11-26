@@ -10,6 +10,7 @@ import {
   loadWorkSettings,
   saveContactMailerSettings,
   saveWorkSettings,
+  uploadProjectMedia,
   uploadResumePdf,
 } from "@/lib/api";
 import { useSiteData } from "@/lib/site-context";
@@ -27,10 +28,13 @@ import type {
   WorkSettings,
   WorkSettingsInput,
 } from "@/lib/types";
-import { createIdCardImageDataUrl, createProjectImageDataUrl, createProjectVideoDataUrl } from "@/utils/profile-image";
+import {
+  createIdCardImageDataUrl,
+  createProjectImageUploadFile,
+  validateProjectVideoFile,
+} from "@/utils/profile-image";
 
 type FormState = Record<string, string>;
-const MAX_PROJECT_IMAGES = 6;
 const MAX_PROJECT_MEDIA = 6;
 
 const DEFAULT_SKILL_LEVEL: SkillLevel = "good";
@@ -874,25 +878,27 @@ export function EditForms() {
       const processedMedia: ProjectImageDraft[] = [];
 
       for (const [index, file] of acceptedFiles.entries()) {
-        let processedSrc: string;
+        let uploadFile: File;
         let mediaType: "image" | "video";
 
         if (file.type.startsWith("video/")) {
-          processedSrc = await createProjectVideoDataUrl(file);
+          validateProjectVideoFile(file);
+          uploadFile = file;
           mediaType = "video";
         } else {
-          processedSrc = await createProjectImageDataUrl(file);
+          uploadFile = await createProjectImageUploadFile(file);
           mediaType = "image";
         }
 
+        const upload = await uploadProjectMedia(uploadFile);
         const order = projectImagesDraft.length + index + 1;
 
         processedMedia.push({
           id: `project-media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          src: processedSrc,
+          src: upload.fileHref,
           alt: `${projectName} ${mediaType === "image" ? "screenshot" : "video"} ${order}`,
           caption: `${projectName} ${mediaType === "image" ? "view" : "clip"} ${order}`,
-          type: mediaType,
+          type: upload.mediaType,
         });
       }
 
@@ -1781,17 +1787,17 @@ export function EditForms() {
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                           <div className="space-y-2">
                             <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
-                              Project images
+                              Project media
                             </p>
                             <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
-                              Upload one or more images and the system will crop, resize, and optimize them for the project overview gallery in the VSCode window.
+                              Upload screenshots or videos for the project gallery. Images are optimized automatically; videos are stored as playable media.
                             </p>
                           </div>
                           <label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110">
-                            <span>{isProcessingProjectImages ? "Processing..." : "Upload images"}</span>
+                            <span>{isProcessingProjectImages ? "Uploading..." : "Upload media"}</span>
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="image/*,video/*"
                               multiple
                               onChange={(event) => void handleProjectImageUpload(event)}
                               className="sr-only"
@@ -1808,21 +1814,31 @@ export function EditForms() {
                                 className="grid gap-4 rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4 lg:grid-cols-[12rem_1fr]"
                               >
                                 <div className="overflow-hidden rounded-[1rem] border border-[color:var(--line)] bg-[#0a101a] aspect-[16/10]">
-                                  <img
-                                    src={image.src}
-                                    alt={image.alt || `Project image ${index + 1}`}
-                                    className="h-full w-full object-cover"
-                                  />
+                                  {image.type === "video" ? (
+                                    <video
+                                      src={image.src}
+                                      className="h-full w-full object-cover"
+                                      muted
+                                      playsInline
+                                      preload="metadata"
+                                    />
+                                  ) : (
+                                    <img
+                                      src={image.src}
+                                      alt={image.alt || `Project image ${index + 1}`}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  )}
                                 </div>
 
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between gap-3">
                                     <div>
                                       <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
-                                        Screenshot {String(index + 1).padStart(2, "0")}
+                                        {image.type === "video" ? "Video" : "Screenshot"} {String(index + 1).padStart(2, "0")}
                                       </p>
                                       <p className="mt-1 text-sm text-[color:var(--text-soft)]">
-                                        This image appears in the Project pics view inside the Explorer window.
+                                        This {image.type === "video" ? "video" : "image"} appears in the Project gallery view inside the Explorer window.
                                       </p>
                                     </div>
                                     <button
@@ -1830,7 +1846,7 @@ export function EditForms() {
                                       onClick={() => deleteProjectImageDraft(image.id)}
                                       className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18"
                                     >
-                                      Delete image
+                                      Delete media
                                     </button>
                                   </div>
 
@@ -1853,7 +1869,7 @@ export function EditForms() {
                             ))
                           ) : (
                             <div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
-                              No project images uploaded yet. Add one or more screenshots to populate the overview gallery.
+                              No project media uploaded yet. Add screenshots or videos to populate the overview gallery.
                             </div>
                           )}
                         </div>
@@ -1863,7 +1879,7 @@ export function EditForms() {
                             <p className="text-rose-300">{projectImageError}</p>
                           ) : (
                             <p>
-                              Up to {MAX_PROJECT_IMAGES} processed images can be stored per project. Each upload is normalized automatically for a clean gallery layout.
+                              Up to {MAX_PROJECT_MEDIA} media items can be stored per project. Images are normalized automatically; videos can be up to 200 MB each.
                             </p>
                           )}
                         </div>
@@ -2326,7 +2342,7 @@ export function EditForms() {
                 {isProcessingProfileImage
                   ? "Processing image..."
                   : isProcessingProjectImages
-                    ? "Processing images..."
+                    ? "Uploading media..."
                     : isUploadingResume
                       ? "Uploading resume..."
                       : isLoadingMailerSettings

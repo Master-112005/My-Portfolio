@@ -49,6 +49,14 @@ type ResumeUploadEnvelope = {
   updatedAt?: string;
 };
 
+type ProjectMediaUploadEnvelope = {
+  error?: string;
+  fileHref?: string;
+  fileName?: string;
+  mediaType?: "image" | "video";
+  updatedAt?: string;
+};
+
 type ApiEnvelope = {
   authenticated?: boolean;
   data?: Partial<PortfolioData>;
@@ -244,6 +252,35 @@ export async function uploadResumePdf(file: File) {
   return {
     fileHref: payload.fileHref ?? "",
     fileName: payload.fileName ?? file.name,
+    updatedAt: payload.updatedAt ?? new Date().toISOString(),
+  };
+}
+
+export async function uploadProjectMedia(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/admin/project-media", {
+    body: formData,
+    cache: "no-store",
+    credentials: "same-origin",
+    method: "POST",
+  });
+  const payload = (await parseJsonResponse(response)) as ProjectMediaUploadEnvelope;
+
+  if (!response.ok) {
+    const error = new Error(
+      payload.error || `Project media upload failed with status ${response.status}.`,
+    ) as ApiRequestError;
+
+    error.status = response.status;
+    throw error;
+  }
+
+  return {
+    fileHref: payload.fileHref ?? "",
+    fileName: payload.fileName ?? file.name,
+    mediaType: payload.mediaType ?? (file.type.startsWith("video/") ? "video" : "image"),
     updatedAt: payload.updatedAt ?? new Date().toISOString(),
   };
 }

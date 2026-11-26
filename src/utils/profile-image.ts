@@ -9,7 +9,6 @@ const PROJECT_OUTPUT_HEIGHT = 900;
 const PROJECT_MAX_BYTES = 260_000;
 const MAX_INPUT_BYTES = 12 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200MB max for videos
-const MAX_PROJECT_MEDIA = 6; // max total images + videos
 
 function estimateDataUrlBytes(dataUrl: string) {
   const [, payload = ""] = dataUrl.split(",");
@@ -139,7 +138,7 @@ export async function createIdCardImageDataUrl(file: File) {
   });
 }
 
-export async function createProjectImageDataUrl(file: File) {
+async function createProjectImageDataUrl(file: File) {
   return createProcessedImageDataUrl(file, {
     width: PROJECT_OUTPUT_WIDTH,
     height: PROJECT_OUTPUT_HEIGHT,
@@ -150,40 +149,32 @@ export async function createProjectImageDataUrl(file: File) {
   });
 }
 
-export async function createProjectVideoDataUrl(file: File) {
+function sanitizeUploadFileName(value: string, fallback: string) {
+  const normalized = value.trim().replace(/[^a-zA-Z0-9._-]+/g, "-");
+  return normalized || fallback;
+}
+
+export async function createProjectImageUploadFile(file: File) {
+  const dataUrl = await createProjectImageDataUrl(file);
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const fileName = sanitizeUploadFileName(file.name.replace(/\.[^.]+$/, ".jpg"), "project-image.jpg");
+
+  return new File([blob], fileName, {
+    type: blob.type || DEFAULT_MIME_TYPE,
+  });
+}
+
+export function validateProjectVideoFile(file: File) {
   if (!file.type.startsWith("video/")) {
     throw new Error("Please upload a video file.");
+  }
+
+  if (file.size <= 0) {
+    throw new Error("Please upload a non-empty video file.");
   }
 
   if (file.size > MAX_VIDEO_BYTES) {
     throw new Error(`Please upload a video smaller than ${Math.round(MAX_VIDEO_BYTES / 1024 / 1024)}MB.`);
   }
-
-  const fileUrl = URL.createObjectURL(file);
-  const video = document.createElement("video");
-  video.preload = "metadata";
-
-  await new Promise<void>((resolve, reject) => {
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(fileUrl);
-      resolve();
-    };
-    video.onerror = () => {
-      URL.revokeObjectURL(fileUrl);
-      reject(new Error("Failed to process the uploaded video."));
-    };
-    video.src = fileUrl;
-  });
-
-  // Store as data URL with video type marker
-  const dataUrl = await new Promise<string>((resolve) => {
-    video.onloadeddata = () => {
-      // Convert to base64 data URL
-      const base64 = video.src.split(",")[1] || "";
-      resolve(`data:video/mp4;base64,${base64}`);
-    };
-    video.play();
-  });
-
-  return dataUrl;
 }

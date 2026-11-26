@@ -5,6 +5,7 @@ import type {
   FooterData,
   PortfolioData,
   ProfileData,
+  ProjectImage,
   ProjectsSectionData,
   ResumeData,
   SkillGroup,
@@ -101,6 +102,39 @@ function normalizeCertifications(items: unknown, fallback: CertificationItem[]):
       };
     })
     .filter((item): item is CertificationItem => Boolean(item));
+}
+
+function normalizeProjectImages(items: unknown): ProjectImage[] {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item, index): ProjectImage | null => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const src = "src" in item && typeof item.src === "string" ? item.src.trim() : "";
+
+      if (!src) {
+        return null;
+      }
+
+      const type = "type" in item && item.type === "video" ? "video" : "image";
+
+      return {
+        id:
+          "id" in item && typeof item.id === "string" && item.id.trim()
+            ? item.id
+            : `project-media-${index + 1}`,
+        src,
+        alt: "alt" in item && typeof item.alt === "string" ? item.alt : "",
+        caption: "caption" in item && typeof item.caption === "string" ? item.caption : "",
+        type,
+      };
+    })
+    .filter((item): item is ProjectImage => Boolean(item));
 }
 
 const profile: ProfileData = {
@@ -675,6 +709,7 @@ export function mergePortfolioData(partial?: Partial<PortfolioData>): PortfolioD
         ...item,
         order: item.order ?? index,
         readme: item.readme ?? item.description ?? "",
+        images: normalizeProjectImages(item.images),
         customSections: item.customSections ?? [],
       };
     }),

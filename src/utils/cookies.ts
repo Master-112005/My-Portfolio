@@ -45,7 +45,3 @@ export function writeCookie(name: string, value: string, options: CookieOptions 
 
   document.cookie = segments.join("; ");
 }
-
-export function deleteCookie(name: string) {
-  writeCookie(name, "", { maxAgeSeconds: 0 });
-}
