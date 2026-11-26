@@ -1,0 +1,1521 @@
+"use client";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { useEditMode } from "@/components/EditMode";
+import { loadContactMailerSettings, loadWorkSettings, saveContactMailerSettings, saveWorkSettings, uploadProjectMedia, uploadResumePdf, } from "@/lib/api";
+import { useSiteData } from "@/lib/site-context";
+import { createIdCardImageDataUrl, createProjectImageUploadFile, validateProjectVideoFile, } from "@/lib/profile-image";
+const MAX_PROJECT_MEDIA = 6;
+const DEFAULT_SKILL_LEVEL = "good";
+const skillLevelOptions = ["linear", "better", "good", "advanced"];
+const emptyMailerSettings = {
+    canPersist: false,
+    fromEmail: "",
+    fromName: "Portfolio Contact",
+    hasPassword: false,
+    smtpHost: "",
+    smtpPort: "587",
+    smtpSecure: false,
+    smtpUser: "",
+    source: "env",
+    toEmail: "",
+};
+const emptyWorkSettings = {
+    canPersist: false,
+    githubUsername: "",
+    hasGithubToken: false,
+    source: "env",
+};
+function serializeLinks(links) {
+    return links.map((link) => `${link.label} | ${link.href} | ${link.handle}`).join("\n");
+}
+function parseLinks(value) {
+    return value
+        .split("\n")
+        .map((line) => line.split("|").map((part) => part.trim()))
+        .filter((parts) => parts[0] && parts[1])
+        .map(([label, href, handle]) => ({
+        label,
+        href,
+        handle: handle ?? href,
+    }));
+}
+function serializeActions(actions) {
+    return actions.map((action) => `${action.label} | ${action.href} | ${action.variant}`).join("\n");
+}
+function parseActions(value) {
+    return value
+        .split("\n")
+        .map((line) => line.split("|").map((part) => part.trim()))
+        .filter((parts) => parts[0] && parts[1])
+        .map(([label, href, variant]) => ({
+        label,
+        href,
+        variant: variant === "secondary" ? "secondary" : "primary",
+    }));
+}
+function parseList(value) {
+    return value
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+}
+function normalizeSkillLevel(value) {
+    return skillLevelOptions.includes(value) ? value : DEFAULT_SKILL_LEVEL;
+}
+function createSkillItemDraft(item, index = 0) {
+    return {
+        id: `skill-item-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        name: item?.name ?? "",
+        level: normalizeSkillLevel(item?.level ?? DEFAULT_SKILL_LEVEL),
+    };
+}
+function createSkillGroupDraft(group, index = 0) {
+    const title = group?.title ?? "New Cluster";
+    return {
+        id: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "skill-cluster"}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
+        accent: group?.accent ?? "#67e8f9",
+        marker: ((group?.marker ?? title.slice(0, 2)) || "SC").slice(0, 2).toUpperCase(),
+        items: group?.items.length ? group.items.map((item, itemIndex) => createSkillItemDraft(item, itemIndex)) : [],
+    };
+}
+function buildSkillGroupDrafts(groups) {
+    return groups.length ? groups.map((group, index) => createSkillGroupDraft(group, index)) : [];
+}
+function normalizeSkillGroupDrafts(groups) {
+    return groups
+        .map((group) => {
+        const title = group.title.trim();
+        const items = group.items
+            .map((item) => {
+            const name = item.name.trim();
+            if (!name) {
+                return null;
+            }
+            return {
+                name,
+                level: normalizeSkillLevel(item.level),
+            };
+        })
+            .filter((item) => Boolean(item));
+        if (!title && !items.length) {
+            return null;
+        }
+        return {
+            title,
+            accent: group.accent.trim(),
+            marker: group.marker.trim().slice(0, 2).toUpperCase(),
+            items,
+        };
+    })
+        .filter((group) => Boolean(group));
+}
+function createCertificationDraft(item, index = 0) {
+    const title = item?.title ?? `Certification ${index + 1}`;
+    return {
+        id: item?.id ?? `certification-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
+        issuer: item?.issuer ?? "",
+        issued: item?.issued ?? "",
+        credentialId: item?.credentialId ?? "",
+        href: item?.href ?? "",
+        accent: item?.accent ?? "#67e8f9",
+        badge: ((item?.badge ?? title.slice(0, 2)) || "CT").slice(0, 2).toUpperCase(),
+    };
+}
+function buildCertificationDrafts(items) {
+    return items.length ? items.map((item, index) => createCertificationDraft(item, index)) : [];
+}
+function normalizeCertificationDrafts(items) {
+    return items
+        .map((item, index) => {
+        const title = item.title.trim();
+        const issuer = item.issuer.trim();
+        if (!title && !issuer) {
+            return null;
+        }
+        return {
+            id: item.id,
+            order: index,
+            title,
+            issuer,
+            issued: item.issued.trim(),
+            credentialId: item.credentialId.trim(),
+            href: item.href.trim(),
+            accent: item.accent.trim(),
+            badge: item.badge.trim().slice(0, 2).toUpperCase(),
+        };
+    })
+        .filter((item) => Boolean(item));
+}
+function createProjectImageDraft(image, index = 0) {
+    return {
+        id: image?.id ?? `project-image-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        src: image?.src ?? "",
+        alt: image?.alt ?? "",
+        caption: image?.caption ?? "",
+        type: image?.type ?? "image",
+    };
+}
+function buildProjectImageDrafts(images) {
+    return images.length ? images.map((image, index) => createProjectImageDraft(image, index)) : [];
+}
+function normalizeProjectImageDrafts(images) {
+    return images
+        .map((image) => {
+        const src = image.src.trim();
+        if (!src) {
+            return null;
+        }
+        return {
+            id: image.id,
+            src,
+            alt: image.alt.trim(),
+            caption: image.caption.trim(),
+            type: image.type ?? "image",
+        };
+    })
+        .filter((image) => Boolean(image));
+}
+function createProjectCustomSectionDraft(section, index = 0) {
+    const title = section?.title ?? `Custom section ${index + 1}`;
+    return {
+        id: section?.id ?? `project-custom-section-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
+        content: section?.content ?? "",
+    };
+}
+function buildProjectCustomSectionDrafts(sections) {
+    return sections.length
+        ? sections.map((section, index) => createProjectCustomSectionDraft(section, index))
+        : [];
+}
+function normalizeProjectCustomSectionDrafts(sections) {
+    return sections
+        .map((section) => {
+        const title = section.title.trim();
+        const content = section.content.trim();
+        if (!title || !content) {
+            return null;
+        }
+        return {
+            id: section.id,
+            title,
+            content,
+        };
+    })
+        .filter((section) => Boolean(section));
+}
+function buildFormState(editor, data) {
+    switch (editor.section) {
+        case "profile":
+            return {
+                name: data.profile.name,
+                role: data.profile.role,
+                tagline: data.profile.tagline,
+                intro: data.profile.intro,
+                location: data.profile.location,
+                availability: data.profile.availability,
+                avatarLabel: data.profile.avatarLabel,
+                profileImageAlt: data.profile.profileImageAlt,
+                profileImageSrc: data.profile.profileImageSrc,
+                idCardSerialNumber: data.profile.idCard.serialNumber,
+                idCardPrimaryName: data.profile.idCard.primaryName,
+                idCardSecondaryName: data.profile.idCard.secondaryName,
+                idCardFrontRoleLines: data.profile.idCard.frontRoleLines.join("\n"),
+                idCardBackTitle: data.profile.idCard.backTitle,
+                idCardBackDescription: data.profile.idCard.backDescription,
+                idCardBackFooter: data.profile.idCard.backFooter,
+                heroActions: serializeActions(data.profile.heroActions),
+                socialLinks: serializeLinks(data.profile.socialLinks),
+            };
+        case "skills":
+            return {
+                eyebrow: data.profile.skillsSection.eyebrow,
+                title: data.profile.skillsSection.title,
+                description: data.profile.skillsSection.description,
+            };
+        case "certifications":
+            return {
+                eyebrow: data.profile.certificationsSection.eyebrow,
+                title: data.profile.certificationsSection.title,
+                description: data.profile.certificationsSection.description,
+            };
+        case "timeline":
+            return {
+                title: data.timeline.title,
+                description: data.timeline.description,
+            };
+        case "education": {
+            const item = data.education.find((entry) => entry.id === editor.itemId);
+            return item
+                ? {
+                    title: item.title,
+                    period: item.period,
+                    institution: item.institution,
+                    summary: item.summary,
+                    details: item.details.join("\n"),
+                    accent: item.accent,
+                }
+                : {};
+        }
+        case "projects": {
+            const item = data.projects.find((entry) => entry.id === editor.itemId);
+            return item
+                ? {
+                    eyebrow: data.projectsSection.eyebrow,
+                    sectionTitle: data.projectsSection.title,
+                    sectionDescription: data.projectsSection.description,
+                    name: item.name,
+                    tagline: item.tagline,
+                    description: item.description,
+                    stack: item.stack.join(", "),
+                    features: item.features.join("\n"),
+                    repoHref: item.repoHref,
+                    liveHref: item.liveHref,
+                    icon: item.icon,
+                    accent: item.accent,
+                    status: item.status,
+                    fileTree: item.fileTree.join("\n"),
+                    codeSnippet: item.codeSnippet,
+                    readme: item.readme,
+                }
+                : {
+                    eyebrow: data.projectsSection.eyebrow,
+                    sectionTitle: data.projectsSection.title,
+                    sectionDescription: data.projectsSection.description,
+                };
+        }
+        case "work":
+            return {
+                eyebrow: data.workSection.eyebrow,
+                title: data.workSection.title,
+                description: data.workSection.description,
+                githubToken: "",
+                githubUsername: "",
+            };
+        case "contact":
+            return {
+                headline: data.contact.headline,
+                email: data.contact.email,
+                phone: data.contact.phone,
+                location: data.contact.location,
+                responseTime: data.contact.responseTime,
+                availability: data.contact.availability,
+                socialLinks: serializeLinks(data.contact.socialLinks),
+            };
+        case "resume":
+            return {
+                title: data.resume.title,
+                fileName: data.resume.fileName,
+                fileHref: data.resume.fileHref,
+                updatedAt: data.resume.updatedAt,
+            };
+        case "mailer":
+            return {
+                fromEmail: "",
+                fromName: "Portfolio Contact",
+                smtpHost: "",
+                smtpPass: "",
+                smtpPort: "587",
+                smtpSecure: "false",
+                smtpUser: "",
+                toEmail: "",
+            };
+        case "footer":
+            return {
+                note: data.footer.note,
+                quote: data.footer.quote,
+                copyrightLabel: data.footer.copyrightLabel,
+                links: serializeLinks(data.footer.links),
+            };
+    }
+}
+function Field({ label, value, onChange, multiline = false, placeholder, }) {
+    return (<label className="space-y-2">
+      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+        {label}
+      </span>
+      {multiline ? (<textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="input-surface min-h-[144px] resize-y"/>) : (<input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="input-surface"/>)}
+    </label>);
+}
+export function EditForms() {
+    const { closeEditor, editor, openEditor } = useEditMode();
+    const { appendProject, data, isSaving, deleteEducationItem, deleteProject, updateContact, updateResume, updateEducationItem, updateFooter, updateProfile, updateProject, updateProjectsSection, updateTimeline, updateWorkSection, } = useSiteData();
+    const [formState, setFormState] = useState({});
+    const [skillGroupsDraft, setSkillGroupsDraft] = useState([]);
+    const [certificationDrafts, setCertificationDrafts] = useState([]);
+    const [projectImagesDraft, setProjectImagesDraft] = useState([]);
+    const [projectCustomSectionsDraft, setProjectCustomSectionsDraft] = useState([]);
+    const [isProcessingProfileImage, setIsProcessingProfileImage] = useState(false);
+    const [isProcessingProjectImages, setIsProcessingProjectImages] = useState(false);
+    const [isLoadingMailerSettings, setIsLoadingMailerSettings] = useState(false);
+    const [isSavingMailerSettings, setIsSavingMailerSettings] = useState(false);
+    const [isLoadingWorkSettings, setIsLoadingWorkSettings] = useState(false);
+    const [isSavingWorkSettings, setIsSavingWorkSettings] = useState(false);
+    const [mailerInfo, setMailerInfo] = useState(emptyMailerSettings);
+    const [workInfo, setWorkInfo] = useState(emptyWorkSettings);
+    const [mailerError, setMailerError] = useState(null);
+    const [workError, setWorkError] = useState(null);
+    const [profileImageError, setProfileImageError] = useState(null);
+    const [projectImageError, setProjectImageError] = useState(null);
+    const [resumeUploadError, setResumeUploadError] = useState(null);
+    const [isUploadingResume, setIsUploadingResume] = useState(false);
+    useEffect(() => {
+        if (!editor) {
+            setFormState({});
+            setSkillGroupsDraft([]);
+            setCertificationDrafts([]);
+            setProjectImagesDraft([]);
+            setProjectCustomSectionsDraft([]);
+            setIsProcessingProfileImage(false);
+            setIsProcessingProjectImages(false);
+            setIsLoadingMailerSettings(false);
+            setIsSavingMailerSettings(false);
+            setIsLoadingWorkSettings(false);
+            setIsSavingWorkSettings(false);
+            setMailerInfo(emptyMailerSettings);
+            setWorkInfo(emptyWorkSettings);
+            setMailerError(null);
+            setWorkError(null);
+            setProfileImageError(null);
+            setProjectImageError(null);
+            setResumeUploadError(null);
+            setIsUploadingResume(false);
+            return;
+        }
+        setFormState(buildFormState(editor, data));
+        setSkillGroupsDraft(editor.section === "skills" ? buildSkillGroupDrafts(data.profile.skillGroups) : []);
+        setCertificationDrafts(editor.section === "certifications" ? buildCertificationDrafts(data.profile.certifications) : []);
+        setProjectImagesDraft(editor.section === "projects"
+            ? buildProjectImageDrafts(data.projects.find((entry) => entry.id === editor.itemId)?.images ?? [])
+            : []);
+        setProjectCustomSectionsDraft(editor.section === "projects"
+            ? buildProjectCustomSectionDrafts(data.projects.find((entry) => entry.id === editor.itemId)?.customSections ?? [])
+            : []);
+        setMailerError(null);
+        setWorkError(null);
+        setProfileImageError(null);
+        setProjectImageError(null);
+        setResumeUploadError(null);
+        if (editor.section !== "mailer") {
+            setIsLoadingMailerSettings(false);
+            setIsSavingMailerSettings(false);
+            setMailerInfo(emptyMailerSettings);
+        }
+        if (editor.section !== "work") {
+            setIsLoadingWorkSettings(false);
+            setIsSavingWorkSettings(false);
+            setWorkInfo(emptyWorkSettings);
+        }
+        if (editor.section === "work") {
+            let isActive = true;
+            setIsLoadingWorkSettings(true);
+            void loadWorkSettings()
+                .then((settings) => {
+                if (!isActive) {
+                    return;
+                }
+                setWorkInfo(settings);
+                setFormState((current) => ({
+                    ...current,
+                    githubToken: "",
+                    githubUsername: settings.githubUsername,
+                }));
+            })
+                .catch((error) => {
+                if (!isActive) {
+                    return;
+                }
+                setWorkError(error instanceof Error ? error.message : "Failed to load GitHub work settings.");
+            })
+                .finally(() => {
+                if (isActive) {
+                    setIsLoadingWorkSettings(false);
+                }
+            });
+            return () => {
+                isActive = false;
+            };
+        }
+        if (editor.section !== "mailer") {
+            return;
+        }
+        let isActive = true;
+        setIsLoadingMailerSettings(true);
+        void loadContactMailerSettings()
+            .then((settings) => {
+            if (!isActive) {
+                return;
+            }
+            setMailerInfo(settings);
+            setFormState({
+                fromEmail: settings.fromEmail,
+                fromName: settings.fromName,
+                smtpHost: settings.smtpHost,
+                smtpPass: "",
+                smtpPort: settings.smtpPort,
+                smtpSecure: String(settings.smtpSecure),
+                smtpUser: settings.smtpUser,
+                toEmail: settings.toEmail,
+            });
+        })
+            .catch((error) => {
+            if (!isActive) {
+                return;
+            }
+            setMailerError(error instanceof Error ? error.message : "Failed to load contact mailer settings.");
+        })
+            .finally(() => {
+            if (isActive) {
+                setIsLoadingMailerSettings(false);
+            }
+        });
+        return () => {
+            isActive = false;
+        };
+    }, [data, editor]);
+    if (!editor) {
+        return null;
+    }
+    const selectedProject = editor.section === "projects"
+        ? data.projects.find((entry) => entry.id === editor.itemId) ?? null
+        : null;
+    const setValue = (key, value) => {
+        if (editor.section === "mailer") {
+            setMailerError(null);
+        }
+        if (editor.section === "work") {
+            setWorkError(null);
+        }
+        if (editor.section === "resume") {
+            setResumeUploadError(null);
+        }
+        setFormState((current) => ({
+            ...current,
+            [key]: value,
+        }));
+    };
+    const updateSkillGroupDraft = (id, key, value) => {
+        setSkillGroupsDraft((current) => current.map((group) => group.id === id
+            ? {
+                ...group,
+                [key]: value,
+            }
+            : group));
+    };
+    const addSkillGroup = () => {
+        setSkillGroupsDraft((current) => [...current, createSkillGroupDraft(undefined, current.length)]);
+    };
+    const deleteSkillGroup = (id) => {
+        setSkillGroupsDraft((current) => current.filter((group) => group.id !== id));
+    };
+    const addSkillItem = (groupId) => {
+        setSkillGroupsDraft((current) => current.map((group) => group.id === groupId
+            ? {
+                ...group,
+                items: [...group.items, createSkillItemDraft(undefined, group.items.length)],
+            }
+            : group));
+    };
+    const updateSkillItem = (groupId, itemId, key, value) => {
+        setSkillGroupsDraft((current) => current.map((group) => group.id === groupId
+            ? {
+                ...group,
+                items: group.items.map((item) => item.id === itemId
+                    ? {
+                        ...item,
+                        [key]: key === "level" ? normalizeSkillLevel(value) : value,
+                    }
+                    : item),
+            }
+            : group));
+    };
+    const deleteSkillItem = (groupId, itemId) => {
+        setSkillGroupsDraft((current) => current.map((group) => group.id === groupId
+            ? {
+                ...group,
+                items: group.items.filter((item) => item.id !== itemId),
+            }
+            : group));
+    };
+    const updateCertificationDraft = (id, key, value) => {
+        setCertificationDrafts((current) => current.map((item) => item.id === id
+            ? {
+                ...item,
+                [key]: key === "badge" ? value.toUpperCase().slice(0, 2) : value,
+            }
+            : item));
+    };
+    const addCertification = () => {
+        setCertificationDrafts((current) => [...current, createCertificationDraft(undefined, current.length)]);
+    };
+    const deleteCertification = (id) => {
+        setCertificationDrafts((current) => current.filter((item) => item.id !== id));
+    };
+    const updateProjectImageDraft = (id, key, value) => {
+        setProjectImagesDraft((current) => current.map((image) => image.id === id
+            ? {
+                ...image,
+                [key]: value,
+            }
+            : image));
+    };
+    const deleteProjectImageDraft = (id) => {
+        setProjectImagesDraft((current) => current.filter((image) => image.id !== id));
+    };
+    const updateProjectCustomSectionDraft = (id, key, value) => {
+        setProjectCustomSectionsDraft((current) => current.map((section) => section.id === id
+            ? {
+                ...section,
+                [key]: value,
+            }
+            : section));
+    };
+    const addProjectCustomSection = () => {
+        setProjectCustomSectionsDraft((current) => [
+            ...current,
+            createProjectCustomSectionDraft(undefined, current.length),
+        ]);
+    };
+    const deleteProjectCustomSectionDraft = (id) => {
+        setProjectCustomSectionsDraft((current) => current.filter((section) => section.id !== id));
+    };
+    const handleProfileImageUpload = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) {
+            return;
+        }
+        setIsProcessingProfileImage(true);
+        setProfileImageError(null);
+        try {
+            const processedImage = await createIdCardImageDataUrl(file);
+            setFormState((current) => ({
+                ...current,
+                profileImageSrc: processedImage,
+                profileImageAlt: current.profileImageAlt ?? "",
+            }));
+        }
+        catch (error) {
+            setProfileImageError(error instanceof Error ? error.message : "Failed to process the uploaded image.");
+        }
+        finally {
+            setIsProcessingProfileImage(false);
+        }
+    };
+    const handleProjectImageUpload = async (event) => {
+        const files = Array.from(event.target.files ?? []);
+        event.target.value = "";
+        if (!files.length) {
+            return;
+        }
+        const remainingSlots = Math.max(0, MAX_PROJECT_MEDIA - projectImagesDraft.length);
+        if (!remainingSlots) {
+            setProjectImageError(`Only ${MAX_PROJECT_MEDIA} project media (images + videos) can be stored for a single project.`);
+            return;
+        }
+        const acceptedFiles = files.slice(0, remainingSlots);
+        const projectName = formState.name?.trim() || data.projects.find((entry) => entry.id === editor.itemId)?.name || "Project";
+        setIsProcessingProjectImages(true);
+        setProjectImageError(null);
+        try {
+            const processedMedia = [];
+            for (const [index, file] of acceptedFiles.entries()) {
+                let uploadFile;
+                let mediaType;
+                if (file.type.startsWith("video/")) {
+                    validateProjectVideoFile(file);
+                    uploadFile = file;
+                    mediaType = "video";
+                }
+                else {
+                    uploadFile = await createProjectImageUploadFile(file);
+                    mediaType = "image";
+                }
+                const upload = await uploadProjectMedia(uploadFile);
+                const order = projectImagesDraft.length + index + 1;
+                processedMedia.push({
+                    id: `project-media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                    src: upload.fileHref,
+                    alt: `${projectName} ${mediaType === "image" ? "screenshot" : "video"} ${order}`,
+                    caption: `${projectName} ${mediaType === "image" ? "view" : "clip"} ${order}`,
+                    type: upload.mediaType,
+                });
+            }
+            setProjectImagesDraft((current) => [...current, ...processedMedia]);
+            if (acceptedFiles.length < files.length) {
+                setProjectImageError(`Only the first ${remainingSlots} file(s) were added. Limit: ${MAX_PROJECT_MEDIA} media items per project.`);
+            }
+        }
+        catch (error) {
+            setProjectImageError(error instanceof Error ? error.message : "Failed to process the uploaded project media.");
+        }
+        finally {
+            setIsProcessingProjectImages(false);
+        }
+    };
+    const handleResumeUpload = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) {
+            return;
+        }
+        setIsUploadingResume(true);
+        setResumeUploadError(null);
+        try {
+            const uploadedResume = await uploadResumePdf(file);
+            setFormState((current) => ({
+                ...current,
+                fileHref: uploadedResume.fileHref,
+                fileName: uploadedResume.fileName,
+                updatedAt: uploadedResume.updatedAt,
+            }));
+        }
+        catch (error) {
+            setResumeUploadError(error instanceof Error ? error.message : "Failed to upload the resume PDF.");
+        }
+        finally {
+            setIsUploadingResume(false);
+        }
+    };
+    const handleSave = async () => {
+        switch (editor.section) {
+            case "profile":
+                await updateProfile({
+                    ...data.profile,
+                    name: formState.name.trim(),
+                    role: formState.role.trim(),
+                    tagline: formState.tagline.trim(),
+                    intro: formState.intro.trim(),
+                    location: formState.location.trim(),
+                    availability: formState.availability.trim(),
+                    avatarLabel: formState.avatarLabel.trim().slice(0, 2).toUpperCase(),
+                    profileImageAlt: formState.profileImageAlt.trim(),
+                    profileImageSrc: formState.profileImageSrc.trim(),
+                    idCard: {
+                        ...data.profile.idCard,
+                        serialNumber: formState.idCardSerialNumber.trim(),
+                        primaryName: formState.idCardPrimaryName.trim(),
+                        secondaryName: formState.idCardSecondaryName.trim(),
+                        frontRoleLines: parseList(formState.idCardFrontRoleLines),
+                        backTitle: formState.idCardBackTitle.trim(),
+                        backDescription: formState.idCardBackDescription.trim(),
+                        backFooter: formState.idCardBackFooter.trim(),
+                    },
+                    heroActions: parseActions(formState.heroActions),
+                    socialLinks: parseLinks(formState.socialLinks),
+                });
+                break;
+            case "skills":
+                await updateProfile({
+                    ...data.profile,
+                    skillsSection: {
+                        eyebrow: formState.eyebrow.trim(),
+                        title: formState.title.trim(),
+                        description: formState.description.trim(),
+                    },
+                    skillGroups: normalizeSkillGroupDrafts(skillGroupsDraft),
+                });
+                break;
+            case "certifications":
+                await updateProfile({
+                    ...data.profile,
+                    certificationsSection: {
+                        eyebrow: formState.eyebrow.trim(),
+                        title: formState.title.trim(),
+                        description: formState.description.trim(),
+                    },
+                    certifications: normalizeCertificationDrafts(certificationDrafts),
+                });
+                break;
+            case "timeline":
+                await updateTimeline({
+                    title: formState.title.trim(),
+                    description: formState.description.trim(),
+                });
+                break;
+            case "education": {
+                const item = data.education.find((entry) => entry.id === editor.itemId);
+                if (!item) {
+                    return;
+                }
+                await updateEducationItem({
+                    ...item,
+                    title: formState.title.trim(),
+                    period: formState.period.trim(),
+                    institution: formState.institution.trim(),
+                    summary: formState.summary.trim(),
+                    details: parseList(formState.details),
+                    accent: formState.accent.trim(),
+                });
+                break;
+            }
+            case "projects": {
+                await updateProjectsSection({
+                    eyebrow: formState.eyebrow.trim(),
+                    title: formState.sectionTitle.trim(),
+                    description: formState.sectionDescription.trim(),
+                });
+                const item = data.projects.find((entry) => entry.id === editor.itemId);
+                if (!item) {
+                    break;
+                }
+                await updateProject({
+                    ...item,
+                    name: formState.name.trim(),
+                    tagline: formState.tagline.trim(),
+                    description: formState.description.trim(),
+                    stack: formState.stack
+                        .split(",")
+                        .map((entry) => entry.trim())
+                        .filter(Boolean),
+                    features: parseList(formState.features),
+                    repoHref: formState.repoHref.trim(),
+                    liveHref: formState.liveHref.trim(),
+                    icon: formState.icon.trim().slice(0, 2).toUpperCase(),
+                    accent: formState.accent.trim(),
+                    status: formState.status.trim(),
+                    fileTree: parseList(formState.fileTree),
+                    codeSnippet: formState.codeSnippet,
+                    readme: formState.readme.trim(),
+                    images: normalizeProjectImageDrafts(projectImagesDraft),
+                    customSections: normalizeProjectCustomSectionDrafts(projectCustomSectionsDraft),
+                });
+                break;
+            }
+            case "work": {
+                await updateWorkSection({
+                    eyebrow: formState.eyebrow.trim(),
+                    title: formState.title.trim(),
+                    description: formState.description.trim(),
+                });
+                const settings = {
+                    githubToken: formState.githubToken.trim(),
+                    githubUsername: formState.githubUsername.trim(),
+                };
+                setIsSavingWorkSettings(true);
+                setWorkError(null);
+                try {
+                    const savedSettings = await saveWorkSettings(settings);
+                    setWorkInfo(savedSettings);
+                    closeEditor();
+                }
+                catch (error) {
+                    setWorkError(error instanceof Error ? error.message : "Failed to save GitHub work settings.");
+                }
+                finally {
+                    setIsSavingWorkSettings(false);
+                }
+                return;
+            }
+            case "contact":
+                await updateContact({
+                    ...data.contact,
+                    headline: formState.headline.trim(),
+                    email: formState.email.trim(),
+                    phone: formState.phone.trim(),
+                    location: formState.location.trim(),
+                    responseTime: formState.responseTime.trim(),
+                    availability: formState.availability.trim(),
+                    socialLinks: parseLinks(formState.socialLinks),
+                });
+                break;
+            case "resume":
+                await updateResume({
+                    ...data.resume,
+                    title: formState.title.trim() || "Resume",
+                    fileName: formState.fileName.trim() || "resume.pdf",
+                    fileHref: formState.fileHref.trim(),
+                    updatedAt: formState.updatedAt.trim(),
+                });
+                break;
+            case "mailer": {
+                const settings = {
+                    fromEmail: formState.fromEmail.trim(),
+                    fromName: formState.fromName.trim(),
+                    smtpHost: formState.smtpHost.trim(),
+                    smtpPass: formState.smtpPass.trim(),
+                    smtpPort: formState.smtpPort.trim(),
+                    smtpSecure: formState.smtpSecure === "true",
+                    smtpUser: formState.smtpUser.trim(),
+                    toEmail: formState.toEmail.trim(),
+                };
+                setIsSavingMailerSettings(true);
+                setMailerError(null);
+                try {
+                    const savedSettings = await saveContactMailerSettings(settings);
+                    setMailerInfo(savedSettings);
+                    closeEditor();
+                }
+                catch (error) {
+                    setMailerError(error instanceof Error ? error.message : "Failed to save contact mailer settings.");
+                }
+                finally {
+                    setIsSavingMailerSettings(false);
+                }
+                return;
+            }
+            case "footer":
+                await updateFooter({
+                    ...data.footer,
+                    note: formState.note.trim(),
+                    quote: formState.quote.trim(),
+                    copyrightLabel: formState.copyrightLabel.trim(),
+                    links: parseLinks(formState.links),
+                });
+                break;
+        }
+        closeEditor();
+    };
+    const handleDelete = async () => {
+        if (editor.section === "education") {
+            const item = data.education.find((entry) => entry.id === editor.itemId);
+            if (!item) {
+                closeEditor();
+                return;
+            }
+            if (!window.confirm(`Delete "${item.title}" from the education journey?`)) {
+                return;
+            }
+            await deleteEducationItem(item.id);
+            closeEditor();
+            return;
+        }
+        if (editor.section === "projects") {
+            const item = data.projects.find((entry) => entry.id === editor.itemId);
+            if (!item) {
+                closeEditor();
+                return;
+            }
+            if (!window.confirm(`Delete "${item.name}" from the project desktop?`)) {
+                return;
+            }
+            await deleteProject(item.id);
+            closeEditor();
+        }
+    };
+    const titleMap = {
+        profile: "Edit profile and ID card",
+        skills: "Edit skills",
+        certifications: "Edit certifications",
+        timeline: "Edit education journey copy",
+        education: "Edit education stage",
+        projects: "Edit project",
+        work: "Edit my work",
+        contact: "Edit contact details",
+        resume: "Edit resume",
+        mailer: "Edit contact mailer",
+        footer: "Edit footer",
+    };
+    return (<AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[75] flex items-center justify-center bg-slate-950/58 px-4 py-8 backdrop-blur-sm">
+        <motion.div initial={{ opacity: 0, y: 24, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.985 }} className="panel-surface-strong max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-[2rem]">
+          <div className="flex items-start justify-between border-b border-[color:var(--line)] px-6 py-5">
+            <div className="space-y-2">
+              <span className="eyebrow">Edit Mode</span>
+              <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text)]">
+                {titleMap[editor.section]}
+              </h2>
+            </div>
+            <button type="button" onClick={closeEditor} className="rounded-full border border-[color:var(--line)] px-3 py-1 text-xs text-[color:var(--text-soft)] transition hover:text-[color:var(--text)]">
+              Close
+            </button>
+          </div>
+
+          <div className="max-h-[calc(92vh-82px)] overflow-y-auto px-6 py-6">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {editor.section === "profile" ? (<>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Profile essentials</span>
+                    <p className="text-sm text-[color:var(--text-soft)]">
+                      Only the main visible content is kept here. The noisy raw image data and secondary badge controls are hidden.
+                    </p>
+                  </div>
+                  <Field label="Name" value={formState.name ?? ""} onChange={(value) => setValue("name", value)}/>
+                  <Field label="Role" value={formState.role ?? ""} onChange={(value) => setValue("role", value)}/>
+                  <div className="sm:col-span-2">
+                    <Field label="Tagline" value={formState.tagline ?? ""} onChange={(value) => setValue("tagline", value)} multiline/>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Introduction" value={formState.intro ?? ""} onChange={(value) => setValue("intro", value)} multiline/>
+                  </div>
+                  <Field label="Location" value={formState.location ?? ""} onChange={(value) => setValue("location", value)}/>
+                  <Field label="Availability" value={formState.availability ?? ""} onChange={(value) => setValue("availability", value)}/>
+                  <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                          Upload profile image
+                        </p>
+                        <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
+                          Upload any image and the system will crop, resize, and optimize it automatically so it fits
+                          the ID card layout.
+                        </p>
+                      </div>
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110">
+                        <span>{isProcessingProfileImage ? "Processing..." : "Upload image"}</span>
+                        <input type="file" accept="image/*" onChange={(event) => void handleProfileImageUpload(event)} className="sr-only" disabled={isProcessingProfileImage}/>
+                      </label>
+                    </div>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-[9rem_1fr] sm:items-start">
+                      <div className="overflow-hidden rounded-[1rem] border border-[color:var(--line)] bg-black/10 aspect-[2/3]">
+                        {formState.profileImageSrc ? (<img src={formState.profileImageSrc} alt={formState.profileImageAlt || "Profile preview"} className="h-full w-full object-cover grayscale contrast-125 brightness-[0.92]"/>) : (<div className="flex h-full items-center justify-center px-4 text-center text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                            No image
+                          </div>)}
+                      </div>
+                      <div className="space-y-2 text-sm leading-6 text-[color:var(--text-soft)]">
+                        <p>The processed image is stored in the existing profile image field, so it works immediately on the badge UI.</p>
+                        {profileImageError ? (<p className="text-rose-300">{profileImageError}</p>) : (<p>{isProcessingProfileImage ? "Normalizing image for the card layout..." : "The card styling still applies grayscale, contrast, and layout framing automatically."}</p>)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2 space-y-1 pt-2">
+                    <span className="eyebrow">ID card essentials</span>
+                    <p className="text-sm text-[color:var(--text-soft)]">
+                      These fields control the visible content on the front of the badge. Social links still control the back.
+                    </p>
+                  </div>
+                  <Field label="ID card serial number" value={formState.idCardSerialNumber ?? ""} onChange={(value) => setValue("idCardSerialNumber", value)} placeholder="31522"/>
+                  <Field label="ID card primary name" value={formState.idCardPrimaryName ?? ""} onChange={(value) => setValue("idCardPrimaryName", value)} placeholder="Rakesh"/>
+                  <Field label="ID card secondary name" value={formState.idCardSecondaryName ?? ""} onChange={(value) => setValue("idCardSecondaryName", value)} placeholder="Kumar"/>
+                  <Field label="ID card front role lines" value={formState.idCardFrontRoleLines ?? ""} onChange={(value) => setValue("idCardFrontRoleLines", value)} multiline placeholder={"Full Stack\nWeb Dev\nUI / UX"}/>
+                  <div className="sm:col-span-2">
+                    <Field label="Social links" value={formState.socialLinks ?? ""} onChange={(value) => setValue("socialLinks", value)} multiline placeholder="GitHub | https://github.com | @handle"/>
+                  </div>
+                </>) : null}
+
+              {editor.section === "skills" ? (<>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Skills section copy</span>
+                    <p className="text-sm text-[color:var(--text-soft)]">
+                      Edit the section heading and each cluster. Every skill now stores its own proficiency level.
+                    </p>
+                  </div>
+                  <Field label="Section eyebrow" value={formState.eyebrow ?? ""} onChange={(value) => setValue("eyebrow", value)}/>
+                  <Field label="Section title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)}/>
+                  <div className="sm:col-span-2">
+                    <Field label="Section description" value={formState.description ?? ""} onChange={(value) => setValue("description", value)} multiline/>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <button type="button" onClick={addSkillGroup} className="edit-button">
+                      <span aria-hidden="true">+</span>
+                      <span>Add skill cluster</span>
+                    </button>
+                  </div>
+                  <div className="sm:col-span-2 grid gap-4">
+                    {skillGroupsDraft.map((group, index) => (<div key={group.id} className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/58 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border font-mono text-sm font-semibold uppercase tracking-[0.2em]" style={{
+                    borderColor: `color-mix(in srgb, ${group.accent.trim() || "var(--accent)"} 34%, transparent)`,
+                    backgroundColor: `color-mix(in srgb, ${group.accent.trim() || "var(--accent)"} 16%, transparent)`,
+                    color: group.accent.trim() || "var(--accent)",
+                }}>
+                              {group.marker}
+                            </div>
+                            <div>
+                              <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                Skill cluster {String(index + 1).padStart(2, "0")}
+                              </p>
+                              <p className="mt-1 text-base font-medium text-[color:var(--text)]">
+                                {group.title.trim()}
+                              </p>
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => deleteSkillGroup(group.id)} className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18">
+                            Delete cluster
+                          </button>
+                        </div>
+
+                        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                          <Field label="Title" value={group.title} onChange={(value) => updateSkillGroupDraft(group.id, "title", value)}/>
+                          <Field label="Marker" value={group.marker} onChange={(value) => updateSkillGroupDraft(group.id, "marker", value.toUpperCase().slice(0, 2))} placeholder="LG"/>
+                          <Field label="Accent" value={group.accent} onChange={(value) => updateSkillGroupDraft(group.id, "accent", value)} placeholder="#67e8f9"/>
+
+                          <div className="sm:col-span-3 rounded-[1.2rem] border border-[color:var(--line)] bg-black/10 p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                  Skills + proficiency
+                                </p>
+                                <p className="mt-1 text-sm text-[color:var(--text-soft)]">
+                                  Use Linear, Better, Good, or Advanced for each skill inside this cluster.
+                                </p>
+                              </div>
+                              <button type="button" onClick={() => addSkillItem(group.id)} className="edit-button">
+                                <span aria-hidden="true">+</span>
+                                <span>Add skill</span>
+                              </button>
+                            </div>
+
+                            <div className="mt-4 space-y-3">
+                              {group.items.length ? (group.items.map((item, itemIndex) => (<div key={item.id} className="grid gap-3 rounded-[1rem] border border-[color:var(--line)] bg-[color:var(--surface)]/48 p-3 sm:grid-cols-[1fr_13rem_auto]">
+                                    <Field label={`Skill ${String(itemIndex + 1).padStart(2, "0")}`} value={item.name} onChange={(value) => updateSkillItem(group.id, item.id, "name", value)} placeholder="TypeScript"/>
+                                    <label className="space-y-2">
+                                      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                        Level
+                                      </span>
+                                      <select value={item.level} onChange={(event) => updateSkillItem(group.id, item.id, "level", event.target.value)} className="input-surface">
+                                        {skillLevelOptions.map((level) => (<option key={level} value={level}>
+                                            {level[0].toUpperCase() + level.slice(1)}
+                                          </option>))}
+                                      </select>
+                                    </label>
+                                    <button type="button" onClick={() => deleteSkillItem(group.id, item.id)} className="self-end rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18">
+                                      Delete
+                                    </button>
+                                  </div>))) : (<div className="rounded-[1rem] border border-dashed border-[color:var(--line)] px-4 py-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                                  No skills added yet in this cluster.
+                                </div>)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>))}
+                  </div>
+                </>) : null}
+
+              {editor.section === "certifications" ? (<>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Certifications block</span>
+                    <p className="text-sm text-[color:var(--text-soft)]">
+                      Edit the certifications section heading and manage each certificate card directly from here.
+                    </p>
+                  </div>
+                  <Field label="Section eyebrow" value={formState.eyebrow ?? ""} onChange={(value) => setValue("eyebrow", value)}/>
+                  <Field label="Section title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)}/>
+                  <div className="sm:col-span-2">
+                    <Field label="Section description" value={formState.description ?? ""} onChange={(value) => setValue("description", value)} multiline/>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <button type="button" onClick={addCertification} className="edit-button">
+                      <span aria-hidden="true">+</span>
+                      <span>Add certification</span>
+                    </button>
+                  </div>
+                  <div className="sm:col-span-2 grid gap-4">
+                    {certificationDrafts.length ? (certificationDrafts.map((item, index) => (<div key={item.id} className="rounded-[1.5rem] border border-[color:var(--line)] bg-[color:var(--surface)]/58 p-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                Certificate {String(index + 1).padStart(2, "0")}
+                              </p>
+                              <p className="mt-1 text-base font-medium text-[color:var(--text)]">
+                                {item.title.trim() || "New certification"}
+                              </p>
+                            </div>
+                            <button type="button" onClick={() => deleteCertification(item.id)} className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18">
+                              Delete certificate
+                            </button>
+                          </div>
+
+                          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                            <Field label="Title" value={item.title} onChange={(value) => updateCertificationDraft(item.id, "title", value)}/>
+                            <Field label="Issuer" value={item.issuer} onChange={(value) => updateCertificationDraft(item.id, "issuer", value)}/>
+                            <Field label="Issued" value={item.issued} onChange={(value) => updateCertificationDraft(item.id, "issued", value)} placeholder="2025"/>
+                            <Field label="Credential ID" value={item.credentialId} onChange={(value) => updateCertificationDraft(item.id, "credentialId", value)} placeholder="AZ-900"/>
+                            <Field label="Badge" value={item.badge} onChange={(value) => updateCertificationDraft(item.id, "badge", value)} placeholder="AZ"/>
+                            <Field label="Accent" value={item.accent} onChange={(value) => updateCertificationDraft(item.id, "accent", value)} placeholder="#38bdf8"/>
+                            <div className="sm:col-span-2">
+                              <Field label="Certificate URL" value={item.href} onChange={(value) => updateCertificationDraft(item.id, "href", value)} placeholder="https://..."/>
+                            </div>
+                          </div>
+                        </div>))) : (<div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
+                        No certifications added yet.
+                      </div>)}
+                  </div>
+                </>) : null}
+
+              {editor.section === "timeline" ? (<>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Education journey copy</span>
+                    <p className="text-sm text-[color:var(--text-soft)]">
+                      These fields control the title and supporting text shown above the milestones.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Journey title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)} multiline/>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Journey description" value={formState.description ?? ""} onChange={(value) => setValue("description", value)} multiline/>
+                  </div>
+                </>) : null}
+
+              {editor.section === "education" ? (<>
+                  <Field label="Stage title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)}/>
+                  <Field label="Period" value={formState.period ?? ""} onChange={(value) => setValue("period", value)}/>
+                  <Field label="Institution" value={formState.institution ?? ""} onChange={(value) => setValue("institution", value)}/>
+                  <Field label="Accent color" value={formState.accent ?? ""} onChange={(value) => setValue("accent", value)} placeholder="#3b82f6"/>
+                  <div className="sm:col-span-2">
+                    <Field label="Summary" value={formState.summary ?? ""} onChange={(value) => setValue("summary", value)} multiline/>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Detail lines" value={formState.details ?? ""} onChange={(value) => setValue("details", value)} multiline/>
+                  </div>
+                </>) : null}
+
+              {editor.section === "projects" ? (<>
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="eyebrow">Project desktop copy</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      These fields control the heading, title, and description shown above the explorer workspace.
+                    </p>
+                  </div>
+                  <Field label="Section eyebrow" value={formState.eyebrow ?? ""} onChange={(value) => setValue("eyebrow", value)}/>
+                  <Field label="Section title" value={formState.sectionTitle ?? ""} onChange={(value) => setValue("sectionTitle", value)}/>
+                  <div className="sm:col-span-2">
+                    <Field label="Section description" value={formState.sectionDescription ?? ""} onChange={(value) => setValue("sectionDescription", value)} multiline/>
+                  </div>
+                  <div className="sm:col-span-2 space-y-1 pt-2">
+                    <span className="eyebrow">Project entries</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      Each project still opens with overview, pictures, stack and links, README, and any custom sections you add.
+                    </p>
+                  </div>
+                  {!selectedProject ? (<div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
+                          No project is selected yet. Save the desktop copy above or create a new project now.
+                        </p>
+                        <button type="button" onClick={() => void appendProject().then((project) => openEditor("projects", project.id))} className="edit-button">
+                          <span aria-hidden="true">+</span>
+                          <span>Add project</span>
+                        </button>
+                      </div>
+                    </div>) : (<>
+                      <Field label="Project name" value={formState.name ?? ""} onChange={(value) => setValue("name", value)}/>
+                      <Field label="Icon label" value={formState.icon ?? ""} onChange={(value) => setValue("icon", value)}/>
+                      <div className="sm:col-span-2">
+                        <Field label="Tagline" value={formState.tagline ?? ""} onChange={(value) => setValue("tagline", value)}/>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field label="Description" value={formState.description ?? ""} onChange={(value) => setValue("description", value)} multiline/>
+                      </div>
+                      <Field label="Stack" value={formState.stack ?? ""} onChange={(value) => setValue("stack", value)} placeholder="Next.js, TypeScript, Firebase"/>
+                      <Field label="Status" value={formState.status ?? ""} onChange={(value) => setValue("status", value)}/>
+                      <Field label="Repo URL" value={formState.repoHref ?? ""} onChange={(value) => setValue("repoHref", value)}/>
+                      <Field label="Live URL" value={formState.liveHref ?? ""} onChange={(value) => setValue("liveHref", value)}/>
+                      <Field label="Accent color" value={formState.accent ?? ""} onChange={(value) => setValue("accent", value)} placeholder="#14b8a6"/>
+                      <div className="sm:col-span-2">
+                        <Field label="README" value={formState.readme ?? ""} onChange={(value) => setValue("readme", value)} multiline placeholder="# Project README"/>
+                      </div>
+                      <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-2">
+                            <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                              Project media
+                            </p>
+                            <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
+                              Upload screenshots or videos for the project gallery. Images are optimized automatically; videos are stored as playable media.
+                            </p>
+                          </div>
+                          <label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110">
+                            <span>{isProcessingProjectImages ? "Uploading..." : "Upload media"}</span>
+                            <input type="file" accept="image/*,video/*" multiple onChange={(event) => void handleProjectImageUpload(event)} className="sr-only" disabled={isProcessingProjectImages}/>
+                          </label>
+                        </div>
+
+                        <div className="mt-4 space-y-4">
+                          {projectImagesDraft.length ? (projectImagesDraft.map((image, index) => (<div key={image.id} className="grid gap-4 rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4 lg:grid-cols-[12rem_1fr]">
+                                <div className="overflow-hidden rounded-[1rem] border border-[color:var(--line)] bg-[#0a101a] aspect-[16/10]">
+                                  {image.type === "video" ? (<video src={image.src} className="h-full w-full object-cover" muted playsInline preload="metadata"/>) : (<img src={image.src} alt={image.alt || `Project image ${index + 1}`} className="h-full w-full object-cover"/>)}
+                                </div>
+
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                      <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                        {image.type === "video" ? "Video" : "Screenshot"} {String(index + 1).padStart(2, "0")}
+                                      </p>
+                                      <p className="mt-1 text-sm text-[color:var(--text-soft)]">
+                                        This {image.type === "video" ? "video" : "image"} appears in the Project gallery view inside the Explorer window.
+                                      </p>
+                                    </div>
+                                    <button type="button" onClick={() => deleteProjectImageDraft(image.id)} className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18">
+                                      Delete media
+                                    </button>
+                                  </div>
+
+                                  <div className="grid gap-4 sm:grid-cols-2">
+                                    <Field label="Caption" value={image.caption} onChange={(value) => updateProjectImageDraft(image.id, "caption", value)} placeholder="Overview of the live dashboard"/>
+                                    <Field label="Alt text" value={image.alt} onChange={(value) => updateProjectImageDraft(image.id, "alt", value)} placeholder="Dashboard screenshot"/>
+                                  </div>
+                                </div>
+                              </div>))) : (<div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
+                              No project media uploaded yet. Add screenshots or videos to populate the overview gallery.
+                            </div>)}
+                        </div>
+
+                        <div className="mt-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                          {projectImageError ? (<p className="text-rose-300">{projectImageError}</p>) : (<p>
+                              Up to {MAX_PROJECT_MEDIA} media items can be stored per project. Images are normalized automatically; videos can be up to 200 MB each.
+                            </p>)}
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2 rounded-[1.4rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-2">
+                            <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                              Custom Explorer sections
+                            </p>
+                            <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
+                              Add extra Explorer options for anything that does not fit the default views, such as results, architecture notes, deployment details, or case-study context.
+                            </p>
+                          </div>
+                          <button type="button" onClick={addProjectCustomSection} className="edit-button">
+                            <span aria-hidden="true">+</span>
+                            <span>Add section</span>
+                          </button>
+                        </div>
+
+                        <div className="mt-4 space-y-4">
+                          {projectCustomSectionsDraft.length ? (projectCustomSectionsDraft.map((section, index) => (<div key={section.id} className="rounded-[1.3rem] border border-[color:var(--line)] bg-black/10 p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                                      Custom option {String(index + 1).padStart(2, "0")}
+                                    </p>
+                                    <p className="mt-1 text-sm text-[color:var(--text-soft)]">
+                                      The title becomes the Explorer label. The content is shown in its own detail view.
+                                    </p>
+                                  </div>
+                                  <button type="button" onClick={() => deleteProjectCustomSectionDraft(section.id)} className="rounded-full border border-rose-400/24 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18">
+                                    Delete section
+                                  </button>
+                                </div>
+
+                                <div className="mt-4 grid gap-4">
+                                  <Field label="Section title" value={section.title} onChange={(value) => updateProjectCustomSectionDraft(section.id, "title", value)} placeholder="Results"/>
+                                  <Field label="Section content" value={section.content} onChange={(value) => updateProjectCustomSectionDraft(section.id, "content", value)} multiline placeholder="Add the notes that should appear in this custom Explorer view."/>
+                                </div>
+                              </div>))) : (<div className="rounded-[1.2rem] border border-dashed border-[color:var(--line)] bg-black/10 px-4 py-5 text-sm leading-6 text-[color:var(--text-soft)]">
+                              No custom Explorer sections yet. Add one when you want a project-specific tab beyond the default overview, pictures, stack and links, and README views.
+                            </div>)}
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field label="Features" value={formState.features ?? ""} onChange={(value) => setValue("features", value)} multiline/>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field label="File tree" value={formState.fileTree ?? ""} onChange={(value) => setValue("fileTree", value)} multiline/>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field label="Code snippet" value={formState.codeSnippet ?? ""} onChange={(value) => setValue("codeSnippet", value)} multiline/>
+                      </div>
+                    </>)}
+                </>) : null}
+
+              {editor.section === "contact" ? (<>
+                  <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <span className="eyebrow">Email delivery</span>
+                        <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                          Configure where portfolio contact messages are delivered without opening the code.
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => openEditor("mailer")} className="edit-button">
+                        <span aria-hidden="true">+</span>
+                        <span>Edit mailer</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Headline" value={formState.headline ?? ""} onChange={(value) => setValue("headline", value)} multiline/>
+                  </div>
+                  <Field label="Email" value={formState.email ?? ""} onChange={(value) => setValue("email", value)}/>
+                  <Field label="Phone" value={formState.phone ?? ""} onChange={(value) => setValue("phone", value)}/>
+                  <Field label="Location" value={formState.location ?? ""} onChange={(value) => setValue("location", value)}/>
+                  <Field label="Response time" value={formState.responseTime ?? ""} onChange={(value) => setValue("responseTime", value)}/>
+                  <div className="sm:col-span-2">
+                    <Field label="Availability" value={formState.availability ?? ""} onChange={(value) => setValue("availability", value)}/>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Social links" value={formState.socialLinks ?? ""} onChange={(value) => setValue("socialLinks", value)} multiline/>
+                  </div>
+                </>) : null}
+
+              {editor.section === "work" ? (<>
+                  <div className="sm:col-span-2 space-y-2">
+                    <span className="eyebrow">My Work section</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      Edit the visible section copy and the private GitHub settings used for live contribution stats.
+                    </p>
+                  </div>
+                  <Field label="Section eyebrow" value={formState.eyebrow ?? ""} onChange={(value) => setValue("eyebrow", value)}/>
+                  <Field label="Section title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)}/>
+                  <div className="sm:col-span-2">
+                    <Field label="Section description" value={formState.description ?? ""} onChange={(value) => setValue("description", value)} multiline/>
+                  </div>
+                  <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                    <p>
+                      Source: <span className="font-semibold text-[color:var(--text)]">{workInfo.source}</span>
+                    </p>
+                    <p>
+                      GitHub token saved: <span className="font-semibold text-[color:var(--text)]">{workInfo.hasGithubToken ? "Yes" : "No"}</span>
+                    </p>
+                    <p>
+                      Persist from edit mode: <span className="font-semibold text-[color:var(--text)]">{workInfo.canPersist ? "Enabled" : "Unavailable"}</span>
+                    </p>
+                    {!workInfo.canPersist ? (<p className="mt-3 text-amber-300">
+                        Firebase Admin is not configured, so GitHub settings cannot be saved from the UI yet.
+                      </p>) : null}
+                  </div>
+                  <Field label="GitHub username" value={formState.githubUsername ?? ""} onChange={(value) => setValue("githubUsername", value)} placeholder="rakesh"/>
+                  <div>
+                    <label className="space-y-2">
+                      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                        GitHub token
+                      </span>
+                      <input type="password" value={formState.githubToken ?? ""} onChange={(event) => setValue("githubToken", event.target.value)} placeholder={workInfo.hasGithubToken ? "Leave blank to keep current token" : "Enter GitHub token"} className="input-surface"/>
+                    </label>
+                  </div>
+                  {isLoadingWorkSettings ? (<div className="sm:col-span-2 text-sm text-[color:var(--text-soft)]">Loading GitHub settings...</div>) : null}
+                  {workError ? (<div className="sm:col-span-2 text-sm text-rose-300">{workError}</div>) : null}
+                </>) : null}
+
+              {editor.section === "resume" ? (<>
+                  <div className="sm:col-span-2 space-y-2">
+                    <span className="eyebrow">Resume PDF</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      Upload a PDF for the fixed View resume button. The file is replaced immediately, then the public path is saved with the portfolio data when you save changes.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Resume title" value={formState.title ?? ""} onChange={(value) => setValue("title", value)} placeholder="Resume"/>
+                  </div>
+                  <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <p className="font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                          Current PDF
+                        </p>
+                        <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                          {formState.fileHref
+                ? `${formState.fileName || "resume.pdf"}${formState.updatedAt ? ` updated ${new Date(formState.updatedAt).toLocaleString()}` : ""}`
+                : "No resume PDF uploaded yet."}
+                        </p>
+                      </div>
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110">
+                        <span>{isUploadingResume ? "Uploading..." : "Upload PDF"}</span>
+                        <input type="file" accept="application/pdf,.pdf" onChange={(event) => void handleResumeUpload(event)} className="sr-only" disabled={isUploadingResume}/>
+                      </label>
+                    </div>
+                    {resumeUploadError ? (<p className="mt-4 text-sm leading-6 text-rose-300">{resumeUploadError}</p>) : null}
+                    {formState.fileHref ? (<div className="mt-4 flex flex-wrap gap-2">
+                        <a href={formState.fileHref} target="_blank" rel="noreferrer" className="rounded-full border border-[color:var(--line)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--accent)]">
+                          Preview PDF
+                        </a>
+                        <a href={formState.fileHref} download={formState.fileName || "resume.pdf"} className="rounded-full border border-[color:var(--line)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--accent)]">
+                          Download PDF
+                        </a>
+                      </div>) : null}
+                  </div>
+                </>) : null}
+
+              {editor.section === "mailer" ? (<>
+                  <div className="sm:col-span-2 space-y-2">
+                    <span className="eyebrow">Private mailer settings</span>
+                    <p className="text-sm leading-6 text-[color:var(--text-soft)]">
+                      These values are used by the contact form email sender. The SMTP password is never shown back in the UI. Leave it blank to keep the current saved password.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2 rounded-[1.3rem] border border-[color:var(--line)] bg-[color:var(--surface)]/56 p-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                    <p>
+                      Source: <span className="font-semibold text-[color:var(--text)]">{mailerInfo.source}</span>
+                    </p>
+                    <p>
+                      Password saved: <span className="font-semibold text-[color:var(--text)]">{mailerInfo.hasPassword ? "Yes" : "No"}</span>
+                    </p>
+                    <p>
+                      Persist from edit mode: <span className="font-semibold text-[color:var(--text)]">{mailerInfo.canPersist ? "Enabled" : "Unavailable"}</span>
+                    </p>
+                    {!mailerInfo.canPersist ? (<p className="mt-3 text-amber-300">
+                        Firebase Admin is not configured, so mailer changes cannot be saved from the UI yet.
+                      </p>) : null}
+                  </div>
+                  <Field label="SMTP host" value={formState.smtpHost ?? ""} onChange={(value) => setValue("smtpHost", value)} placeholder="smtp.gmail.com"/>
+                  <Field label="SMTP port" value={formState.smtpPort ?? ""} onChange={(value) => setValue("smtpPort", value)} placeholder="587"/>
+                  <Field label="SMTP user" value={formState.smtpUser ?? ""} onChange={(value) => setValue("smtpUser", value)} placeholder="your@email.com"/>
+                  <Field label="To email" value={formState.toEmail ?? ""} onChange={(value) => setValue("toEmail", value)} placeholder="your@email.com"/>
+                  <Field label="From email" value={formState.fromEmail ?? ""} onChange={(value) => setValue("fromEmail", value)} placeholder="your@email.com"/>
+                  <Field label="From name" value={formState.fromName ?? ""} onChange={(value) => setValue("fromName", value)} placeholder="Portfolio Contact"/>
+                  <div className="sm:col-span-2">
+                    <label className="space-y-2">
+                      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                        SMTP password
+                      </span>
+                      <input type="password" value={formState.smtpPass ?? ""} onChange={(event) => setValue("smtpPass", event.target.value)} placeholder={mailerInfo.hasPassword ? "Leave blank to keep current password" : "Enter SMTP password"} className="input-surface"/>
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="space-y-2">
+                      <span className="block font-mono text-xs uppercase tracking-[0.22em] text-[color:var(--text-soft)]">
+                        Transport security
+                      </span>
+                      <select value={formState.smtpSecure ?? "false"} onChange={(event) => setValue("smtpSecure", event.target.value)} className="input-surface">
+                        <option value="false">STARTTLS / explicit TLS (usually port 587)</option>
+                        <option value="true">Implicit TLS / SSL (usually port 465)</option>
+                      </select>
+                    </label>
+                  </div>
+                  {isLoadingMailerSettings ? (<div className="sm:col-span-2 text-sm text-[color:var(--text-soft)]">Loading mailer settings...</div>) : null}
+                  {mailerError ? (<div className="sm:col-span-2 text-sm text-rose-300">{mailerError}</div>) : null}
+                </>) : null}
+
+              {editor.section === "footer" ? (<>
+                  <div className="sm:col-span-2">
+                    <Field label="Footer note" value={formState.note ?? ""} onChange={(value) => setValue("note", value)} multiline/>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Quote" value={formState.quote ?? ""} onChange={(value) => setValue("quote", value)}/>
+                  </div>
+                  <Field label="Copyright" value={formState.copyrightLabel ?? ""} onChange={(value) => setValue("copyrightLabel", value)}/>
+                  <div className="sm:col-span-2">
+                    <Field label="Footer links" value={formState.links ?? ""} onChange={(value) => setValue("links", value)} multiline/>
+                  </div>
+                </>) : null}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 border-t border-[color:var(--line)] pt-6 sm:flex-row sm:justify-end">
+              {editor.section === "education" || (editor.section === "projects" && Boolean(selectedProject)) ? (<button type="button" onClick={() => void handleDelete()} disabled={isSaving} className="rounded-full border border-rose-400/28 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/18 disabled:cursor-wait disabled:opacity-75 sm:mr-auto">
+                  {editor.section === "education" ? "Delete stage" : "Delete project"}
+                </button>) : null}
+              <button type="button" onClick={closeEditor} className="rounded-full border border-[color:var(--line)] px-5 py-3 text-sm text-[color:var(--text-soft)] transition hover:text-[color:var(--text)]">
+                Cancel
+              </button>
+              <button type="button" onClick={() => void handleSave()} disabled={isSaving ||
+            isProcessingProfileImage ||
+            isProcessingProjectImages ||
+            isUploadingResume ||
+            isSavingMailerSettings ||
+            isLoadingMailerSettings ||
+            isSavingWorkSettings ||
+            isLoadingWorkSettings ||
+            (editor.section === "mailer" && !mailerInfo.canPersist) ||
+            (editor.section === "work" && !workInfo.canPersist)} className="rounded-full bg-[color:var(--accent)] px-5 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-wait disabled:opacity-75">
+                {isProcessingProfileImage
+            ? "Processing image..."
+            : isProcessingProjectImages
+                ? "Uploading media..."
+                : isUploadingResume
+                    ? "Uploading resume..."
+                    : isLoadingMailerSettings
+                        ? "Loading settings..."
+                        : isLoadingWorkSettings
+                            ? "Loading GitHub settings..."
+                            : isSavingMailerSettings
+                                ? "Saving mailer..."
+                                : isSavingWorkSettings
+                                    ? "Saving GitHub settings..."
+                                    : isSaving
+                                        ? "Saving..."
+                                        : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>);
+}

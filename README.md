@@ -11,10 +11,9 @@ An immersive Next.js portfolio built as a cinematic developer journey with:
 ## Stack
 
 - Next.js App Router
-- TypeScript
+- JavaScript / JSX
 - Tailwind CSS
 - Framer Motion
-- React Three Fiber / Three.js
 - Firebase Firestore
 
 ## Local Setup
@@ -117,6 +116,5 @@ If Firebase Admin credentials are not present, the route handlers fall back to t
 ## Verification
 
 ```bash
-npm run typecheck
 npm run build
 ```
