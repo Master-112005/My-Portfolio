@@ -46,11 +46,11 @@ export default function Footer() {
         </div>
 
         {/* Analytics Popup */}
-        {showAnalytics && (<div className="fixed inset-0 z-[99] bg-slate-950/80 backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && setShowAnalytics(false)}>
-            <div className="fixed top-20 right-4 bg-slate-950/95 rounded-[1.5rem] p-6 w-64 max-w-xs border border-slate-700/70 shadow-lg">
+        {showAnalytics && (<div className="fixed inset-0 z-[99] bg-neutral-950/80 backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && setShowAnalytics(false)}>
+            <div className="fixed top-20 right-4 bg-neutral-950/95 rounded-[1.5rem] p-6 w-64 max-w-xs border border-neutral-700/70 shadow-lg">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">Analytics</h3>
-                <button onClick={() => setShowAnalytics(false)} className="text-slate-400 hover:text-white">
+                <button onClick={() => setShowAnalytics(false)} className="text-neutral-400 hover:text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M18.28 5.72a.75.75 0 010 1.06l-1.45 1.45a.75.75 0 01-1.06 0L10 11.94l-5.72-5.72a.75.75 0 111.06-1.06l1.45 1.45A1 1 0 0118.28 5.72z"/>
                   </svg>
@@ -60,46 +60,46 @@ export default function Footer() {
               <div className="space-y-4">
                 {/* Views Section */}
                 <div>
-                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Views</p>
+                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-neutral-400 mb-2">Views</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <p className="font-medium text-white">Today</p>
-                      <p className="mt-1 text-slate-300">{todayViews}</p>
+                      <p className="mt-1 text-neutral-300">{todayViews}</p>
                     </div>
                     <div>
                       <p className="font-medium text-white">Week</p>
-                      <p className="mt-1 text-slate-300">{weekViews}</p>
+                      <p className="mt-1 text-neutral-300">{weekViews}</p>
                     </div>
                     <div>
                       <p className="font-medium text-white">Month</p>
-                      <p className="mt-1 text-slate-300">{monthViews}</p>
+                      <p className="mt-1 text-neutral-300">{monthViews}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Viewer Emails Section */}
                 <div>
-                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Viewer Emails</p>
+                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-neutral-400 mb-2">Viewer Emails</p>
                   {todayViews > 0 || weekViews > 0 || monthViews > 0 ? (<div className="space-y-2 max-h-32 overflow-y-auto">
-                      {todayViews > 0 && (<div className="p-2 rounded bg-slate-800 text-xs">
-                          <span className="font-medium text-slate-300">Today:</span>
-                          <span className="ml-2 text-slate-200">{viewerEmails.today || "No email recorded"}</span>
+                      {todayViews > 0 && (<div className="p-2 rounded bg-neutral-800 text-xs">
+                          <span className="font-medium text-neutral-300">Today:</span>
+                          <span className="ml-2 text-neutral-200">{viewerEmails.today || "No email recorded"}</span>
                         </div>)}
-                      {weekViews > 0 && (<div className="p-2 rounded bg-slate-800 text-xs">
-                          <span className="font-medium text-slate-300">Week:</span>
-                          <span className="ml-2 text-slate-200">{viewerEmails.week || "No email recorded"}</span>
+                      {weekViews > 0 && (<div className="p-2 rounded bg-neutral-800 text-xs">
+                          <span className="font-medium text-neutral-300">Week:</span>
+                          <span className="ml-2 text-neutral-200">{viewerEmails.week || "No email recorded"}</span>
                         </div>)}
-                      {monthViews > 0 && (<div className="p-2 rounded bg-slate-800 text-xs">
-                          <span className="font-medium text-slate-300">Month:</span>
-                          <span className="ml-2 text-slate-200">{viewerEmails.month || "No email recorded"}</span>
+                      {monthViews > 0 && (<div className="p-2 rounded bg-neutral-800 text-xs">
+                          <span className="font-medium text-neutral-300">Month:</span>
+                          <span className="ml-2 text-neutral-200">{viewerEmails.month || "No email recorded"}</span>
                         </div>)}
-                      {todayViews === 0 && weekViews === 0 && monthViews === 0 && (<p className="text-slate-500 text-xs">No views recorded yet</p>)}
-                    </div>) : (<p className="text-slate-500 text-xs">No views recorded yet</p>)}
+                      {todayViews === 0 && weekViews === 0 && monthViews === 0 && (<p className="text-neutral-500 text-xs">No views recorded yet</p>)}
+                    </div>) : (<p className="text-neutral-500 text-xs">No views recorded yet</p>)}
                 </div>
               </div>
 
               <div className="mt-4 flex justify-end">
-                <button onClick={() => setShowAnalytics(false)} className="rounded-full border border-slate-700/50 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-700/80">
+                <button onClick={() => setShowAnalytics(false)} className="rounded-full border border-neutral-700/50 px-4 py-2 text-sm text-neutral-300 transition hover:bg-neutral-700/80">
                   Close
                 </button>
               </div>

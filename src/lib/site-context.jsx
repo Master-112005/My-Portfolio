@@ -1,6 +1,6 @@
 "use client";
 import { createContext, startTransition, useContext, useEffect, useRef, useState, } from "react";
-import { createPortfolioDataClone } from "@/lib/defaultData";
+import { createPortfolioDataClone, monochromePortfolioData } from "@/lib/defaultData";
 import { loadPortfolioData, savePortfolioData, submitContactMessage } from "@/lib/api";
 const SiteDataContext = createContext(null);
 function createEducationItem(order) {
@@ -12,7 +12,7 @@ function createEducationItem(order) {
         institution: "Add institution",
         summary: "Add a short summary for this stage.",
         details: ["Add a detail line."],
-        accent: "#3b82f6",
+        accent: "#7a7a7a",
         href: "",
     };
 }
@@ -28,7 +28,7 @@ function createProjectItem(order) {
         repoHref: "https://github.com/",
         liveHref: "https://vercel.com/",
         icon: "NP",
-        accent: "#3b82f6",
+        accent: "#7a7a7a",
         status: "In progress",
         fileTree: ["app/page.tsx"],
         codeSnippet: "export const status = 'draft';",
@@ -78,7 +78,7 @@ export function SiteDataProvider({ children }) {
         void refresh();
     }, []);
     const commit = async (recipe) => {
-        const nextData = recipe(dataRef.current);
+        const nextData = monochromePortfolioData(recipe(dataRef.current));
         dataRef.current = nextData;
         setData(nextData);
         setIsSaving(true);

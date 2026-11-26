@@ -75,7 +75,7 @@ export default function IDCard({ profile }) {
             stopSettleAnimation();
         };
     }, []);
-    return (<div className="relative mx-auto flex h-[40rem] w-full max-w-[20rem] items-start justify-center pt-2 sm:h-[42rem]">
+    return (<div className="relative mx-auto flex h-[40rem] w-full max-w-[20rem] origin-top items-start justify-center pt-2 max-[380px]:scale-[0.92] sm:h-[42rem] sm:scale-100">
       <motion.div style={{
             x: shadowX,
             y: shadowY,

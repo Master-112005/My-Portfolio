@@ -23,8 +23,8 @@ export default function CertificationsBlock({ items, section }) {
     return (<section id="certifications" className="section-shell">
       <div className="panel-surface-strong relative overflow-hidden rounded-[2.25rem] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
         <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.36),transparent)]"/>
-        <div className="absolute left-0 top-10 h-44 w-44 rounded-full bg-sky-400/8 blur-3xl"/>
-        <div className="absolute bottom-0 right-0 h-52 w-52 rounded-full bg-amber-500/8 blur-3xl"/>
+        <div className="absolute left-0 top-10 h-44 w-44 rounded-full bg-neutral-400/8 blur-3xl"/>
+        <div className="absolute bottom-0 right-0 h-52 w-52 rounded-full bg-neutral-500/8 blur-3xl"/>
 
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
@@ -38,7 +38,7 @@ export default function CertificationsBlock({ items, section }) {
         </div>
 
         <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {hasVisibleItems ? (visibleItems.map((item, index) => (<motion.article key={item.id} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.45, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }} className="relative flex min-h-[21rem] flex-col overflow-hidden rounded-[1.75rem] border border-[color:var(--line)] bg-[color:var(--bg-elevated)]/70 p-6 shadow-[0_18px_46px_rgba(2,6,23,0.14)] backdrop-blur">
+          {hasVisibleItems ? (visibleItems.map((item, index) => (<motion.article key={item.id} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.45, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }} className="relative flex min-h-[21rem] flex-col overflow-hidden rounded-[1.75rem] border border-[color:var(--line)] bg-[color:var(--bg-elevated)]/70 p-6 shadow-[0_18px_46px_rgba(0,0,0,0.14)] backdrop-blur">
                 <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${item.accent}, transparent)` }}/>
                 <div className="absolute -right-8 top-4 h-24 w-24 rounded-full blur-3xl" style={{ backgroundColor: `${item.accent}18` }}/>
 
@@ -83,7 +83,7 @@ export default function CertificationsBlock({ items, section }) {
                     </div>
 
                     <div className="mt-auto">
-                      {item.href ? (<a href={item.href} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-slate-950" style={{ backgroundColor: item.accent }}>
+                      {item.href ? (<a href={item.href} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)]" style={{ backgroundColor: "var(--accent-solid)" }}>
                           View certificate
                         </a>) : (<p className="text-sm leading-7 text-[color:var(--text-soft)]">
                           Add a verification link in edit mode if you want this card to open the certificate.

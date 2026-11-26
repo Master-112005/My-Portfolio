@@ -103,16 +103,16 @@ export default function TimelineSection() {
 
         <div className="relative" style={{ minHeight: `${timelineHeightRem}rem` }}>
           <div className="absolute inset-0 -z-10 overflow-hidden">
-            <div className="absolute left-1/2 top-20 h-[70%] w-[42rem] -translate-x-1/2 rounded-full bg-cyan-400/8 blur-3xl"/>
-            <div className="absolute bottom-10 left-1/2 h-[45%] w-[34rem] -translate-x-1/2 rounded-full bg-orange-500/8 blur-3xl"/>
+            <div className="absolute left-1/2 top-20 h-[70%] w-[42rem] -translate-x-1/2 rounded-full bg-neutral-400/8 blur-3xl"/>
+            <div className="absolute bottom-10 left-1/2 h-[45%] w-[34rem] -translate-x-1/2 rounded-full bg-neutral-500/8 blur-3xl"/>
           </div>
 
-          <div className="pointer-events-none absolute left-1/2 top-12 bottom-12 hidden w-px -translate-x-1/2 bg-[linear-gradient(180deg,rgba(103,232,249,0.08),rgba(103,232,249,0.22),rgba(249,115,22,0.08))] lg:block"/>
+          <div className="pointer-events-none absolute left-1/2 top-12 bottom-12 hidden w-px -translate-x-1/2 bg-[linear-gradient(180deg,rgba(200,200,200,0.08),rgba(200,200,200,0.22),rgba(160,160,160,0.08))] lg:block"/>
 
           <div className="pointer-events-none absolute inset-0 hidden lg:block">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-              <path d={snakePath} fill="none" stroke="rgba(103,232,249,0.18)" strokeWidth="2.4" strokeLinecap="round"/>
-              <path d={snakePath} fill="none" stroke="rgba(249,115,22,0.08)" strokeWidth="6" strokeLinecap="round"/>
+              <path d={snakePath} fill="none" stroke="rgba(200,200,200,0.18)" strokeWidth="2.4" strokeLinecap="round"/>
+              <path d={snakePath} fill="none" stroke="rgba(160,160,160,0.08)" strokeWidth="6" strokeLinecap="round"/>
               {education.map((item, index) => {
             const x = index % 2 === 0 ? 32 : 68;
             const y = 8 + index * (84 / Math.max(education.length - 1, 1));

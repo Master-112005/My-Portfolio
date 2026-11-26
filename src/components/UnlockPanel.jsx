@@ -97,7 +97,7 @@ export function UnlockPanel() {
     };
     return (<>
       <AnimatePresence>
-        {isUnlockOpen ? (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/58 px-4 backdrop-blur-md">
+        {isUnlockOpen ? (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center bg-neutral-950/58 px-4 backdrop-blur-md">
             <motion.div initial={{ opacity: 0, y: 28, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: 0.98 }} className="panel-surface-strong relative w-full max-w-lg rounded-[2rem] p-6 sm:p-8">
               <button type="button" onClick={handleClose} className="absolute right-4 top-4 rounded-full border border-[color:var(--line)] px-3 py-1 text-xs text-[color:var(--text-soft)] transition hover:text-[color:var(--text)]">
                 Close
@@ -126,10 +126,10 @@ export function UnlockPanel() {
                     <span>{isLocked ? `Locked for ${lockoutLabel}` : "Exactly 12 digits are required."}</span>
                     <span>{isLocked ? `${remainingAttempts} retries` : `${password.length}/12`}</span>
                   </div>
-                  {error ? <p className="mt-3 text-sm text-rose-400">{error}</p> : null}
+                  {error ? <p className="mt-3 text-sm font-medium text-[color:var(--text)]">{error}</p> : null}
                 </div>
 
-                <button type="button" onClick={() => void handleUnlock()} disabled={isVerifying || isLocked} className="inline-flex w-full items-center justify-center rounded-full bg-[color:var(--accent)] px-5 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-wait disabled:opacity-70">
+                <button type="button" onClick={() => void handleUnlock()} disabled={isVerifying || isLocked} className="inline-flex w-full items-center justify-center rounded-full bg-[color:var(--accent-solid)] px-5 py-3 text-sm font-semibold text-[color:var(--on-accent)] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-70">
                   {isLocked ? `Locked ${lockoutLabel}` : isVerifying ? "Verifying..." : "Unlock edit mode"}
                 </button>
               </div>
@@ -138,10 +138,10 @@ export function UnlockPanel() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {isEditMode ? (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="fixed left-4 top-4 z-50 flex items-center gap-3 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs text-emerald-200 backdrop-blur sm:left-6 sm:top-6">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-300"/>
+        {isEditMode ? (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="fixed left-4 top-20 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-full border border-[color:var(--line)] bg-[color:var(--accent-soft)] px-4 py-2 text-xs text-[color:var(--text)] backdrop-blur sm:left-6 sm:top-6">
+            <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--accent-solid)]"/>
             <span>Edit mode enabled</span>
-            <button type="button" onClick={() => void disableEditMode()} className="rounded-full border border-emerald-300/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] transition hover:bg-emerald-300/10">
+            <button type="button" onClick={() => void disableEditMode()} className="rounded-full border border-[color:var(--line)] px-3 py-1 text-[11px] uppercase tracking-[0.2em] transition hover:bg-[color:var(--accent-soft)]">
               Exit
             </button>
           </motion.div>) : null}

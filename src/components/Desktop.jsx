@@ -102,40 +102,40 @@ export default function Desktop() {
           </div>
         </div>
 
-        <div ref={desktopRef} className="relative min-h-[48rem] overflow-hidden rounded-[2rem] border border-[color:var(--line)] bg-[#08111c]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(15,118,110,0.24),_transparent_28%)]"/>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.2),_transparent_26%)]"/>
+        <div ref={desktopRef} className="relative min-h-[38rem] overflow-hidden rounded-[2rem] border border-[color:var(--line)] bg-[#0a0a0a] sm:min-h-[48rem]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(150,150,150,0.24),_transparent_28%)]"/>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_rgba(160,160,160,0.2),_transparent_26%)]"/>
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent)]"/>
 
-          <div className="absolute left-0 right-0 top-0 flex items-center justify-between border-b border-white/8 bg-black/25 px-5 py-4 text-sm text-slate-300 backdrop-blur">
+          <div className="absolute left-0 right-0 top-0 flex flex-wrap items-center justify-between gap-2 border-b border-white/8 bg-black/25 px-5 py-4 text-sm text-neutral-300 backdrop-blur">
             <div className="flex items-center gap-3">
-              <span className="rounded-full border border-white/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
+              <span className="rounded-full border border-white/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-neutral-400">
                 Narrative OS
               </span>
               <span>Project explorer</span>
             </div>
-            <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-500">
+            <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-neutral-500">
               Click icon to launch
             </span>
           </div>
 
-          <div className="grid gap-4 px-5 pb-6 pt-24 sm:grid-cols-[repeat(2,8.5rem)] lg:grid-cols-[repeat(3,8.5rem)]">
+          <div className="grid grid-cols-2 justify-items-center gap-4 px-5 pb-28 pt-24 sm:grid-cols-[repeat(2,8.5rem)] sm:pb-6 lg:grid-cols-[repeat(3,8.5rem)]">
             {data.projects.map((project) => (<ProjectIcon key={project.id} project={project} isActive={activeProjectId === project.id} onOpen={(item, element) => handleOpenProject(item.id, element)}/>))}
           </div>
 
-          <motion.div animate={isGuideActive ? { x: 8, y: -6 } : { x: 0, y: 0 }} className="absolute bottom-6 left-6 flex items-center gap-4 rounded-[1.5rem] border border-white/10 bg-white/6 px-4 py-3 text-slate-200 backdrop-blur">
+          <motion.div animate={isGuideActive ? { x: 8, y: -6 } : { x: 0, y: 0 }} className="absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] items-center gap-4 rounded-[1.5rem] border border-white/10 bg-white/6 px-4 py-3 text-neutral-200 backdrop-blur sm:bottom-6 sm:left-6">
             <div className="relative flex h-16 w-16 items-end justify-center">
               <motion.div animate={{
             x: isGuideActive ? 8 : 0,
             rotate: cursorState.clicking ? 12 : 0,
-        }} className="absolute bottom-5 right-1 h-9 w-2 rounded-full bg-cyan-200/90 origin-bottom"/>
-              <div className="absolute bottom-10 h-5 w-5 rounded-full bg-cyan-200"/>
-              <div className="h-8 w-8 rounded-t-full bg-cyan-300/90"/>
-              <div className="absolute bottom-0 h-8 w-11 rounded-[1rem] bg-cyan-400/35"/>
+        }} className="absolute bottom-5 right-1 h-9 w-2 rounded-full bg-neutral-200/90 origin-bottom"/>
+              <div className="absolute bottom-10 h-5 w-5 rounded-full bg-neutral-200"/>
+              <div className="h-8 w-8 rounded-t-full bg-neutral-300/90"/>
+              <div className="absolute bottom-0 h-8 w-11 rounded-[1rem] bg-neutral-400/35"/>
             </div>
             <div>
               <p className="font-semibold text-white">Desktop guide</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">{guideStatus}</p>
+              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-neutral-400">{guideStatus}</p>
             </div>
           </motion.div>
 
@@ -147,8 +147,8 @@ export default function Desktop() {
                 y: cursorState.y,
             }} exit={{ opacity: 0 }} transition={{ type: "spring", stiffness: 220, damping: 26 }} className="pointer-events-none absolute left-0 top-0 z-30">
                 <div className="relative -translate-x-1/2 -translate-y-1/2">
-                  <div className="h-10 w-10 rounded-full border border-cyan-300/40 bg-cyan-300/14 backdrop-blur"/>
-                  <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-200/90"/>
+                  <div className="h-10 w-10 rounded-full border border-neutral-300/40 bg-neutral-300/14 backdrop-blur"/>
+                  <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-200/90"/>
                 </div>
               </motion.div>) : null}
           </AnimatePresence>

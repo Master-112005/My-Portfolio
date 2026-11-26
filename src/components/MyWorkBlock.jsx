@@ -109,8 +109,8 @@ export default function MyWorkBlock() {
     return (<section id="work" className="section-shell">
       <div className="panel-surface-strong relative overflow-hidden rounded-[2rem] px-5 py-7 sm:px-7 sm:py-8 lg:px-8 lg:py-9">
         <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.36),transparent)]"/>
-        <div className="absolute -left-12 top-16 h-44 w-44 rounded-full bg-emerald-400/8 blur-3xl"/>
-        <div className="absolute bottom-0 right-0 h-52 w-52 rounded-full bg-sky-500/8 blur-3xl"/>
+        <div className="absolute -left-12 top-16 h-44 w-44 rounded-full bg-neutral-400/8 blur-3xl"/>
+        <div className="absolute bottom-0 right-0 h-52 w-52 rounded-full bg-neutral-500/8 blur-3xl"/>
 
         <div className="relative flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
@@ -126,7 +126,7 @@ export default function MyWorkBlock() {
         </div>
 
         <div className="relative mt-5 grid min-w-0 gap-4">
-          <motion.article initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="min-w-0 rounded-[1.45rem] border border-[color:var(--line)] bg-[color:var(--bg-elevated)]/70 p-4 shadow-[0_18px_46px_rgba(2,6,23,0.12)] backdrop-blur sm:p-5">
+          <motion.article initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="min-w-0 rounded-[1.45rem] border border-[color:var(--line)] bg-[color:var(--bg-elevated)]/70 p-4 shadow-[0_18px_46px_rgba(0,0,0,0.12)] backdrop-blur sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-mono text-[0.68rem] uppercase tracking-[0.26em] text-[color:var(--text-soft)]">GitHub activity</p>

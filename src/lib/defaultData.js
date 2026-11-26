@@ -1,3 +1,29 @@
+const MONOCHROME_ACCENT = "#7a7a7a";
+
+function monochromeAccentList(items) {
+    return Array.isArray(items)
+        ? items.map((item) => ({ ...item, accent: MONOCHROME_ACCENT }))
+        : items;
+}
+
+export function monochromePortfolioData(data) {
+    if (!data) {
+        return data;
+    }
+    return {
+        ...data,
+        profile: data.profile
+            ? {
+                ...data.profile,
+                skillGroups: monochromeAccentList(data.profile.skillGroups),
+                certifications: monochromeAccentList(data.profile.certifications),
+            }
+            : data.profile,
+        education: monochromeAccentList(data.education),
+        projects: monochromeAccentList(data.projects),
+    };
+}
+
 function normalizeSkillLevel(value) {
     return value === "advanced" || value === "good" || value === "better" || value === "linear"
         ? value
@@ -103,7 +129,6 @@ const profile = {
     intro: "This portfolio is a guided walk through the way I learn, design, and ship. Every section is meant to feel like an artifact from the journey, not a static resume panel.",
     location: "India / Remote-friendly",
     availability: "Open to product engineering and creative frontend roles",
-    avatarLabel: "RK",
     profileImageAlt: "Portrait of Rakesh Kumar",
     profileImageSrc: "/images/profile.jpg",
     idCard: {
@@ -123,7 +148,7 @@ const profile = {
     skillGroups: [
         {
             title: "Languages",
-            accent: "#67e8f9",
+            accent: "#7a7a7a",
             marker: "LG",
             items: [
                 { name: "TypeScript", level: "advanced" },
@@ -137,7 +162,7 @@ const profile = {
         },
         {
             title: "Technologies",
-            accent: "#14b8a6",
+            accent: "#7a7a7a",
             marker: "TK",
             items: [
                 { name: "Firebase", level: "advanced" },
@@ -151,7 +176,7 @@ const profile = {
         },
         {
             title: "Frameworks",
-            accent: "#fb7185",
+            accent: "#7a7a7a",
             marker: "FW",
             items: [
                 { name: "Next.js", level: "advanced" },
@@ -164,7 +189,7 @@ const profile = {
         },
         {
             title: "Core",
-            accent: "#f97316",
+            accent: "#7a7a7a",
             marker: "CR",
             items: [
                 { name: "Web Development", level: "advanced" },
@@ -176,7 +201,7 @@ const profile = {
         },
         {
             title: "Misc",
-            accent: "#8b5cf6",
+            accent: "#7a7a7a",
             marker: "ET",
             items: [
                 { name: "Digital Content Creation", level: "good" },
@@ -200,7 +225,7 @@ const profile = {
             issued: "2024",
             credentialId: "AZ-900",
             href: "https://learn.microsoft.com/",
-            accent: "#38bdf8",
+            accent: "#7a7a7a",
             badge: "AZ",
         },
         {
@@ -211,7 +236,7 @@ const profile = {
             issued: "2024",
             credentialId: "FB-DEV",
             href: "https://firebase.google.com/",
-            accent: "#f59e0b",
+            accent: "#7a7a7a",
             badge: "FB",
         },
         {
@@ -222,7 +247,7 @@ const profile = {
             issued: "2025",
             credentialId: "REACT-PRO",
             href: "https://frontendmasters.com/",
-            accent: "#fb7185",
+            accent: "#7a7a7a",
             badge: "RC",
         },
     ],
@@ -269,7 +294,7 @@ const education = [
             "Learned to treat mistakes as part of the process instead of as a failure state.",
             "Started noticing that design and problem solving were connected, even before software entered the picture.",
         ],
-        accent: "#f97316",
+        accent: "#7a7a7a",
         href: "",
     },
     {
@@ -284,7 +309,7 @@ const education = [
             "Developed a bias for clean work, repeatable systems, and measurable improvement.",
             "Started building small websites and experimenting with visual presentation on the web.",
         ],
-        accent: "#14b8a6",
+        accent: "#7a7a7a",
         href: "",
     },
     {
@@ -299,7 +324,7 @@ const education = [
             "Strengthened problem solving through structured reasoning and deliberate practice.",
             "Began connecting abstract theory with the practical systems used in modern software.",
         ],
-        accent: "#8b5cf6",
+        accent: "#7a7a7a",
         href: "",
     },
     {
@@ -314,7 +339,7 @@ const education = [
             "Focused on architecture, user experience, and maintainable frontends rather than only feature delivery.",
             "Became interested in immersive interfaces where engineering quality and storytelling reinforce each other.",
         ],
-        accent: "#3b82f6",
+        accent: "#7a7a7a",
         href: "",
     },
 ];
@@ -343,7 +368,7 @@ const projects = [
         repoHref: "https://github.com/",
         liveHref: "https://vercel.com/",
         icon: "SD",
-        accent: "#0f766e",
+        accent: "#7a7a7a",
         status: "Live concept build",
         fileTree: [
             "app/page.tsx",
@@ -394,7 +419,7 @@ The interface uses a narrative layout so the most important information stays vi
         repoHref: "https://github.com/",
         liveHref: "https://vercel.com/",
         icon: "AC",
-        accent: "#b45309",
+        accent: "#7a7a7a",
         status: "Case study",
         fileTree: [
             "app/(shop)/layout.tsx",
@@ -444,7 +469,7 @@ Motion is used to reinforce hierarchy and product mood instead of adding generic
         repoHref: "https://github.com/",
         liveHref: "https://vercel.com/",
         icon: "SE",
-        accent: "#7c3aed",
+        accent: "#7a7a7a",
         status: "Framework experiment",
         fileTree: [
             "packages/motion/presets.ts",
@@ -491,7 +516,7 @@ It reduces one-off animation work and gives storytelling-heavy projects a shared
         repoHref: "https://github.com/",
         liveHref: "https://vercel.com/",
         icon: "OL",
-        accent: "#1d4ed8",
+        accent: "#7a7a7a",
         status: "Internal tools concept",
         fileTree: [
             "app/incidents/page.tsx",
@@ -595,14 +620,14 @@ export const defaultPortfolioData = {
     footer,
 };
 export function createPortfolioDataClone() {
-    return JSON.parse(JSON.stringify(defaultPortfolioData));
+    return monochromePortfolioData(JSON.parse(JSON.stringify(defaultPortfolioData)));
 }
 export function mergePortfolioData(partial) {
     const base = createPortfolioDataClone();
     if (!partial) {
         return base;
     }
-    return {
+    return monochromePortfolioData({
         profile: {
             ...base.profile,
             ...partial.profile,
@@ -666,5 +691,5 @@ export function mergePortfolioData(partial) {
             ...partial.footer,
             links: partial.footer?.links ?? base.footer.links,
         },
-    };
+    });
 }

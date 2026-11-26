@@ -30,15 +30,15 @@ export default function PortfolioExperience() {
       <ThemeToggle />
 
       <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(15,118,110,0.12),_transparent_34%)]"/>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_rgba(249,115,22,0.12),_transparent_24%)]"/>
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(15,23,42,0.06))]"/>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(150,150,150,0.12),_transparent_34%)]"/>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_rgba(160,160,160,0.12),_transparent_24%)]"/>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(10,10,10,0.06))]"/>
       </div>
 
-      <motion.div animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: -12 }} className="fixed bottom-4 left-4 z-40 flex items-center gap-3 rounded-full border border-[color:var(--line)] bg-[color:var(--bg-elevated)] px-4 py-2 text-xs text-[color:var(--text-soft)] backdrop-blur xl:left-8">
-        <span className={`h-2.5 w-2.5 rounded-full ${isSaving ? "bg-amber-400" : "bg-emerald-400"}`}/>
+      <motion.div animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: -12 }} className="fixed bottom-20 left-4 z-40 flex items-center gap-3 rounded-full border border-[color:var(--line)] bg-[color:var(--bg-elevated)] px-4 py-2 text-xs text-[color:var(--text-soft)] backdrop-blur sm:bottom-4 xl:left-8">
+        <span className={`h-2.5 w-2.5 rounded-full ${isSaving ? "bg-[color:var(--accent-solid)]" : "bg-[color:var(--accent)]"}`}/>
         <span>{isLoading ? "Loading story data" : isSaving ? "Saving edits" : "Portfolio ready"}</span>
-        {saveError ? <span className="text-rose-400">{saveError}</span> : null}
+        {saveError ? <span className="font-medium text-[color:var(--text)]">{saveError}</span> : null}
       </motion.div>
 
       <main className="space-y-10 py-6 sm:space-y-12 sm:py-8">

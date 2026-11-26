@@ -35,8 +35,8 @@ export default function SkillsBlock({ groups, section }) {
     return (<section id="skills" className="section-shell">
       <div className="panel-surface-strong relative overflow-hidden rounded-[2.25rem] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
         <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.36),transparent)]"/>
-        <div className="absolute -left-10 top-12 h-40 w-40 rounded-full bg-cyan-400/8 blur-3xl"/>
-        <div className="absolute bottom-0 right-0 h-48 w-48 rounded-full bg-orange-500/8 blur-3xl"/>
+        <div className="absolute -left-10 top-12 h-40 w-40 rounded-full bg-neutral-400/8 blur-3xl"/>
+        <div className="absolute bottom-0 right-0 h-48 w-48 rounded-full bg-neutral-500/8 blur-3xl"/>
 
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
@@ -52,7 +52,7 @@ export default function SkillsBlock({ groups, section }) {
         <div className="mt-6 grid items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
           {visibleGroups.map((group, index) => {
             const isExpanded = expandedGroup === group.id;
-            return (<motion.article key={group.id} layout initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.45, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }} className="relative min-h-[21rem] self-start overflow-hidden rounded-[1.75rem] border border-[color:var(--line)] bg-[color:var(--bg-elevated)]/70 p-6 shadow-[0_18px_46px_rgba(2,6,23,0.14)] backdrop-blur">
+            return (<motion.article key={group.id} layout initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.45, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }} className="relative min-h-[21rem] self-start overflow-hidden rounded-[1.75rem] border border-[color:var(--line)] bg-[color:var(--bg-elevated)]/70 p-6 shadow-[0_18px_46px_rgba(0,0,0,0.14)] backdrop-blur">
                 <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${group.accent}, transparent)` }}/>
                 <div className="absolute -right-8 top-4 h-24 w-24 rounded-full blur-3xl" style={{ backgroundColor: `${group.accent}18` }}/>
 

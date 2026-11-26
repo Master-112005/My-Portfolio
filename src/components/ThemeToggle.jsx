@@ -8,7 +8,7 @@ export default function ThemeToggle() {
         {["system", "light", "dark"].map((item) => {
             const isActive = theme === item || (item !== "system" && resolvedTheme === item && theme !== "system");
             return (<button key={item} type="button" onClick={() => setTheme(item)} className={`rounded-full px-3 py-2 font-mono text-xs uppercase tracking-[0.24em] transition ${isActive
-                    ? "bg-[color:var(--accent)] text-slate-950"
+                    ? "bg-[color:var(--accent-solid)] text-[color:var(--on-accent)]"
                     : "text-[color:var(--text-soft)] hover:text-[color:var(--text)]"}`}>
               {item}
             </button>);

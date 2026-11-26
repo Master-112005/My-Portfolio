@@ -93,8 +93,8 @@ async function createProjectImageDataUrl(file) {
         width: PROJECT_OUTPUT_WIDTH,
         height: PROJECT_OUTPUT_HEIGHT,
         maxBytes: PROJECT_MAX_BYTES,
-        fillStyle: "#0b1220",
-        filter: "contrast(1.04) saturate(0.96)",
+        fillStyle: "#101010",
+        filter: "none",
         verticalBias: 0.36,
     });
 }

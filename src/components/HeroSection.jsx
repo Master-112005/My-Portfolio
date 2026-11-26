@@ -18,7 +18,7 @@ export default function HeroSection() {
       <div className="ambient-grid noise-overlay panel-surface-strong relative overflow-hidden rounded-[2.25rem] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
         <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent)]"/>
         <div className="absolute -left-14 top-24 h-52 w-52 rounded-full bg-[color:var(--accent-soft)] blur-3xl"/>
-        <div className="absolute bottom-12 right-10 h-40 w-40 rounded-full bg-orange-500/10 blur-3xl"/>
+        <div className="absolute bottom-12 right-10 h-40 w-40 rounded-full bg-neutral-500/10 blur-3xl"/>
         <motion.div animate={{ y: [0, -14, 0], rotate: [0, 3, 0] }} transition={{ duration: 9, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }} className="absolute right-6 top-6 hidden h-28 w-28 rounded-[2rem] border border-[color:var(--line)] bg-[color:var(--surface)]/70 lg:block"/>
         <motion.div animate={{ y: [0, 18, 0], rotate: [0, -5, 0] }} transition={{ duration: 11, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }} className="absolute bottom-14 left-10 hidden h-20 w-20 rounded-full border border-[color:var(--line)] bg-[color:var(--surface)]/60 lg:block"/>
 
@@ -44,7 +44,7 @@ export default function HeroSection() {
 
             {heroActions.length ? (<motion.div variants={fadeUpVariant} className="flex flex-wrap gap-3">
                 {heroActions.map((action) => (<Link key={`${action.label}-${action.href}`} href={action.href} className={`inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition duration-200 ${action.variant === "primary"
-                    ? "bg-[color:var(--accent)] text-slate-950 hover:brightness-110"
+                    ? "bg-[color:var(--accent-solid)] text-[color:var(--on-accent)] hover:brightness-110"
                     : "border border-[color:var(--line)] bg-[color:var(--surface)]/70 text-[color:var(--text)] hover:-translate-y-0.5"}`}>
                   {action.label}
                 </Link>))}
@@ -58,9 +58,9 @@ export default function HeroSection() {
               </motion.div>) : null}
           </motion.div>
 
-          <div className="relative z-10 overflow-hidden rounded-[2.25rem] border border-black/8 bg-[#030508] px-4 py-8 shadow-[0_32px_80px_rgba(0,0,0,0.18)] sm:px-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(103,232,249,0.18),transparent_28%)]"/>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.12),transparent_32%)]"/>
+          <div className="relative z-10 overflow-hidden rounded-[2.25rem] border border-black/8 bg-[#050505] px-4 py-8 shadow-[0_32px_80px_rgba(0,0,0,0.18)] sm:px-6">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,200,200,0.18),transparent_28%)]"/>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(160,160,160,0.12),transparent_32%)]"/>
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent_24%)]"/>
             <IDCard profile={profile}/>
           </div>

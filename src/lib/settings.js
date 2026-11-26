@@ -218,12 +218,12 @@ export async function sendContactEmail(message) {
     await transporter.sendMail({
         from: formatAddress(config.fromName, config.fromEmail),
         html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111111;">
         <h2 style="margin-bottom: 16px;">New portfolio contact message</h2>
         <p><strong>Name:</strong> ${escapeHtml(message.name)}</p>
         <p><strong>Email:</strong> ${escapeHtml(message.email)}</p>
         <p><strong>Message:</strong></p>
-        <div style="white-space: pre-wrap; border: 1px solid #d1d5db; padding: 16px; border-radius: 12px;">${escapeHtml(message.message)}</div>
+        <div style="white-space: pre-wrap; border: 1px solid #d4d4d4; padding: 16px; border-radius: 12px;">${escapeHtml(message.message)}</div>
       </div>
     `,
         replyTo: formatAddress(message.name, message.email),
