@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { EditButton } from "@/components/EditMode";
+import { EditButton, useEditMode } from "@/components/EditMode";
 import IDCard from "@/components/IDCard";
 import { useSiteData } from "@/lib/site-context";
 import { fadeUpVariant, staggerParentVariant } from "@/lib/animations";
 export default function HeroSection() {
     const { data } = useSiteData();
     const { profile } = data;
+    const { isEditMode } = useEditMode();
     const heroActions = profile.heroActions.filter((action) => action.label.trim() && action.href.trim());
     const heroMeta = [
         { label: "Role", value: profile.role.trim() },
@@ -24,13 +25,9 @@ export default function HeroSection() {
 
         <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <motion.div variants={staggerParentVariant} initial="hidden" animate="visible" className="relative z-10 space-y-6">
-            <motion.div variants={fadeUpVariant} className="flex flex-wrap items-center gap-3">
-              <span className="eyebrow">Interactive developer narrative</span>
-              <span className="rounded-full border border-[color:var(--line)] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.24em] text-[color:var(--text-soft)]">
-                Scroll, explore, edit
-              </span>
-              <EditButton section="profile" label="Edit profile / ID card"/>
-            </motion.div>
+            {isEditMode ? (<div className="flex flex-wrap items-center gap-3">
+                <EditButton section="profile" label="Edit profile / ID card"/>
+              </div>) : null}
 
             <motion.div variants={fadeUpVariant} className="space-y-5">
               <h1 className="section-title max-w-3xl font-semibold text-[color:var(--text)]">
