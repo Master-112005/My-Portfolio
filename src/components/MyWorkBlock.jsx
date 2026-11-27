@@ -112,17 +112,11 @@ export default function MyWorkBlock() {
         <div className="absolute -left-12 top-16 h-44 w-44 rounded-full bg-neutral-400/8 blur-3xl"/>
         <div className="absolute bottom-0 right-0 h-52 w-52 rounded-full bg-neutral-500/8 blur-3xl"/>
 
-        <div className="relative flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <span className="eyebrow">{section.eyebrow}</span>
-            <h2 className="max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-[color:var(--text)] sm:text-4xl">
-              {section.title}
-            </h2>
-            <EditButton section="work" label="Edit my work"/>
-          </div>
-          <p className="max-w-xl text-sm leading-6 text-[color:var(--text-soft)]">
-            {section.description}
-          </p>
+        <div className="relative flex flex-wrap items-center justify-between gap-3">
+          <h2 className="max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-[color:var(--text)] sm:text-4xl">
+            {section.title}
+          </h2>
+          <EditButton section="work" label="Edit my work"/>
         </div>
 
         <div className="relative mt-5 grid min-w-0 gap-4">

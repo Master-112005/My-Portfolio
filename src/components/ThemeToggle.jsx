@@ -7,9 +7,9 @@ export default function ThemeToggle() {
       <div className="panel-surface flex items-center gap-2 rounded-full p-2">
         {["system", "light", "dark"].map((item) => {
             const isActive = theme === item || (item !== "system" && resolvedTheme === item && theme !== "system");
-            return (<button key={item} type="button" onClick={() => setTheme(item)} className={`rounded-full px-3 py-2 font-mono text-xs uppercase tracking-[0.24em] transition ${isActive
-                    ? "bg-[color:var(--accent-solid)] text-[color:var(--on-accent)]"
-                    : "text-[color:var(--text-soft)] hover:text-[color:var(--text)]"}`}>
+            return (<button key={item} type="button" onClick={() => setTheme(item)} className={`rounded-full border px-3 py-2 font-mono text-xs uppercase tracking-[0.24em] transition ${isActive
+                    ? "border-[color:var(--line)] bg-[color:var(--accent-soft)] text-[color:var(--text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
+                    : "border-transparent text-[color:var(--text-soft)] hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"}`}>
               {item}
             </button>);
         })}

@@ -85,8 +85,7 @@ export default function TimelineSection() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <span className="eyebrow">Education journey</span>
-            <EditButton section="timeline" label="Edit journey copy"/>
-            <EditButton section="education" itemId={education[0]?.id} label="Edit stages"/>
+            <EditButton section="education" itemId={education[0]?.id} label="Edit education"/>
             {isEditMode ? (<button type="button" onClick={() => void handleAddStage()} className="edit-button">
                 <span aria-hidden="true">+</span>
                 <span>Add stage</span>
@@ -95,9 +94,6 @@ export default function TimelineSection() {
           {timeline.title.trim() ? (<h2 className="section-title max-w-4xl font-semibold text-[color:var(--text)]">
               {timeline.title}
             </h2>) : null}
-          {timeline.description.trim() ? (<p className="section-copy max-w-2xl">
-              {timeline.description}
-            </p>) : null}
           
         </div>
 

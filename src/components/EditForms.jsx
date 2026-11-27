@@ -33,8 +33,7 @@ const sectionGroups = [
             { section: "profile", label: "Profile & ID card" },
             { section: "skills", label: "Skills" },
             { section: "certifications", label: "Certifications" },
-            { section: "timeline", label: "Journey intro" },
-            { section: "education", label: "Education stages" },
+            { section: "education", label: "Education" },
             { section: "projects", label: "Projects" },
             { section: "work", label: "My work" },
             { section: "contact", label: "Contact" },
@@ -54,8 +53,7 @@ const titleMap = {
     profile: "Profile & ID card",
     skills: "Skills",
     certifications: "Certifications",
-    timeline: "Journey intro",
-    education: "Education stage",
+    education: "Education",
     projects: "Project",
     work: "My work",
     contact: "Contact",
@@ -67,7 +65,6 @@ const sectionGroupLabel = {
     profile: "Identity",
     skills: "Content",
     certifications: "Content",
-    timeline: "Content",
     education: "Content",
     projects: "Content",
     work: "Content",
@@ -297,25 +294,17 @@ function buildFormState(editor, data) {
             };
         case "skills":
             return {
-                eyebrow: data.profile.skillsSection.eyebrow,
                 title: data.profile.skillsSection.title,
-                description: data.profile.skillsSection.description,
             };
         case "certifications":
             return {
-                eyebrow: data.profile.certificationsSection.eyebrow,
                 title: data.profile.certificationsSection.title,
-                description: data.profile.certificationsSection.description,
-            };
-        case "timeline":
-            return {
-                title: data.timeline.title,
-                description: data.timeline.description,
             };
         case "education": {
             const item = data.education.find((entry) => entry.id === editor.itemId);
             return item
                 ? {
+                    journeyTitle: data.timeline.title,
                     title: item.title,
                     period: item.period,
                     institution: item.institution,
@@ -323,15 +312,15 @@ function buildFormState(editor, data) {
                     summary: item.summary,
                     details: item.details.join("\n"),
                 }
-                : {};
+                : {
+                    journeyTitle: data.timeline.title,
+                };
         }
         case "projects": {
             const item = data.projects.find((entry) => entry.id === editor.itemId);
             return item
                 ? {
-                    eyebrow: data.projectsSection.eyebrow,
                     sectionTitle: data.projectsSection.title,
-                    sectionDescription: data.projectsSection.description,
                     name: item.name,
                     tagline: item.tagline,
                     description: item.description,
@@ -346,16 +335,12 @@ function buildFormState(editor, data) {
                     readme: item.readme,
                 }
                 : {
-                    eyebrow: data.projectsSection.eyebrow,
                     sectionTitle: data.projectsSection.title,
-                    sectionDescription: data.projectsSection.description,
                 };
         }
         case "work":
             return {
-                eyebrow: data.workSection.eyebrow,
                 title: data.workSection.title,
-                description: data.workSection.description,
                 githubToken: "",
                 githubUsername: "",
             };
@@ -920,9 +905,7 @@ export function EditForms() {
                 await updateProfile({
                     ...data.profile,
                     skillsSection: {
-                        eyebrow: formState.eyebrow.trim(),
                         title: formState.title.trim(),
-                        description: formState.description.trim(),
                     },
                     skillGroups: normalizeSkillGroupDrafts(skillGroupsDraft),
                 });
@@ -931,23 +914,18 @@ export function EditForms() {
                 await updateProfile({
                     ...data.profile,
                     certificationsSection: {
-                        eyebrow: formState.eyebrow.trim(),
                         title: formState.title.trim(),
-                        description: formState.description.trim(),
                     },
                     certifications: normalizeCertificationDrafts(certificationDrafts),
                 });
                 break;
-            case "timeline":
-                await updateTimeline({
-                    title: formState.title.trim(),
-                    description: formState.description.trim(),
-                });
-                break;
             case "education": {
+                await updateTimeline({
+                    title: formState.journeyTitle.trim(),
+                });
                 const item = data.education.find((entry) => entry.id === editor.itemId);
                 if (!item) {
-                    return;
+                    break;
                 }
                 await updateEducationItem({
                     ...item,
@@ -962,9 +940,7 @@ export function EditForms() {
             }
             case "projects": {
                 await updateProjectsSection({
-                    eyebrow: formState.eyebrow.trim(),
                     title: formState.sectionTitle.trim(),
-                    description: formState.sectionDescription.trim(),
                 });
                 const item = data.projects.find((entry) => entry.id === editor.itemId);
                 if (!item) {
@@ -994,9 +970,7 @@ export function EditForms() {
             }
             case "work": {
                 await updateWorkSection({
-                    eyebrow: formState.eyebrow.trim(),
                     title: formState.title.trim(),
-                    description: formState.description.trim(),
                 });
                 const settings = {
                     githubToken: formState.githubToken.trim(),
@@ -1113,8 +1087,7 @@ export function EditForms() {
         isLoadingWorkSettings;
     const saveDisabled = isBusy ||
         (editor.section === "mailer" && !mailerInfo.canPersist) ||
-        (editor.section === "work" && !workInfo.canPersist) ||
-        (editor.section === "education" && !selectedEducation);
+        (editor.section === "work" && !workInfo.canPersist);
     const saveLabel = isProcessingProfileImage
         ? "Processing image..."
         : isProcessingProjectImages
@@ -1157,10 +1130,10 @@ export function EditForms() {
                     {group.items.map((item) => {
                 const active = editor.section === item.section;
                 return (<button key={item.section} type="button" onClick={() => go(item.section)} className={`flex w-full items-center justify-between gap-2 rounded-[0.9rem] px-3 py-2 text-left text-sm transition ${active
-                        ? "bg-[color:var(--accent-solid)] font-semibold text-[color:var(--on-accent)]"
+                        ? "bg-[color:var(--accent-soft)] font-semibold text-[color:var(--text)]"
                         : "text-[color:var(--text-soft)] hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"}`}>
                           <span>{item.label}</span>
-                          {active ? (<span className="h-1.5 w-1.5 rounded-full bg-[color:var(--on-accent)]"/>) : null}
+                          {active ? (<span className="h-1.5 w-1.5 rounded-full bg-[color:var(--text)]"/>) : null}
                         </button>);
             })}
                   </div>
@@ -1214,7 +1187,7 @@ export function EditForms() {
                       </div>
                     </EditorCard>
 
-                    <EditorCard title="Profile image" description="Crops and resizes automatically to fit the ID card." action={<label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent-solid)] px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:brightness-110">
+                    <EditorCard title="Profile image" description="Crops and resizes automatically to fit the ID card." action={<label className="btn-primary cursor-pointer px-4 py-2 text-sm">
                           <span>{isProcessingProfileImage ? "Processing..." : "Upload image"}</span>
                           <input type="file" accept="image/*" onChange={(event) => void handleProfileImageUpload(event)} className="sr-only" disabled={isProcessingProfileImage}/>
                         </label>}>
@@ -1254,12 +1227,8 @@ export function EditForms() {
                   </>) : null}
 
                 {editor.section === "skills" ? (<>
-                    <EditorCard title="Section copy" description="Heading shown above the skill clusters.">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label="Eyebrow" value={formState.eyebrow} onChange={(value) => setValue("eyebrow", value)}/>
-                        <Field label="Title" value={formState.title} onChange={(value) => setValue("title", value)}/>
-                        <Field className="sm:col-span-2" label="Description" value={formState.description} onChange={(value) => setValue("description", value)} multiline/>
-                      </div>
+                    <EditorCard title="Section heading">
+                      <Field label="Title" value={formState.title} onChange={(value) => setValue("title", value)}/>
                     </EditorCard>
 
                     <EditorCard title="Skill clusters" description="Each cluster stores its own skills and proficiency levels." action={<button type="button" onClick={addSkillGroup} className="edit-button">
@@ -1320,12 +1289,8 @@ export function EditForms() {
                   </>) : null}
 
                 {editor.section === "certifications" ? (<>
-                    <EditorCard title="Section copy" description="Heading shown above the certificate cards.">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label="Eyebrow" value={formState.eyebrow} onChange={(value) => setValue("eyebrow", value)}/>
-                        <Field label="Title" value={formState.title} onChange={(value) => setValue("title", value)}/>
-                        <Field className="sm:col-span-2" label="Description" value={formState.description} onChange={(value) => setValue("description", value)} multiline/>
-                      </div>
+                    <EditorCard title="Section heading">
+                      <Field label="Title" value={formState.title} onChange={(value) => setValue("title", value)}/>
                     </EditorCard>
 
                     <EditorCard title="Certificates" description="Manage each certificate card." action={<button type="button" onClick={addCertification} className="edit-button">
@@ -1359,14 +1324,11 @@ export function EditForms() {
                     </EditorCard>
                   </>) : null}
 
-                {editor.section === "timeline" ? (<EditorCard title="Journey intro" description="Title and description shown above the education milestones.">
-                    <div className="grid gap-4">
-                      <Field label="Title" value={formState.title} onChange={(value) => setValue("title", value)} multiline/>
-                      <Field label="Description" value={formState.description} onChange={(value) => setValue("description", value)} multiline/>
-                    </div>
-                  </EditorCard>) : null}
-
                 {editor.section === "education" ? (<>
+                    <EditorCard title="Journey intro">
+                      <Field label="Title" value={formState.journeyTitle} onChange={(value) => setValue("journeyTitle", value)} multiline/>
+                    </EditorCard>
+
                     <EditorCard title="Stages" description="Pick a stage to edit, or add a new milestone." action={<button type="button" onClick={() => void handleAddStage()} className="edit-button">
                           <span aria-hidden="true">+</span>
                           <span>Add stage</span>
@@ -1375,7 +1337,7 @@ export function EditForms() {
                         {data.education.length ? (data.education.map((stage, index) => {
                     const active = editor.itemId === stage.id;
                     return (<button key={stage.id} type="button" onClick={() => go("education", stage.id)} className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${active
-                            ? "border-transparent bg-[color:var(--accent-solid)] text-[color:var(--on-accent)]"
+                            ? "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-[color:var(--text)]"
                             : "border-[color:var(--line)] text-[color:var(--text-soft)] hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"}`}>
                                 <span className="font-mono">{String(index + 1).padStart(2, "0")}</span>
                                 <span className="ml-2">{stage.title.trim() || "Untitled stage"}</span>
@@ -1397,12 +1359,8 @@ export function EditForms() {
                   </>) : null}
 
                 {editor.section === "projects" ? (<>
-                    <EditorCard title="Section copy" description="Heading shown above the project desktop.">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label="Eyebrow" value={formState.eyebrow} onChange={(value) => setValue("eyebrow", value)}/>
-                        <Field label="Title" value={formState.sectionTitle} onChange={(value) => setValue("sectionTitle", value)}/>
-                        <Field className="sm:col-span-2" label="Description" value={formState.sectionDescription} onChange={(value) => setValue("sectionDescription", value)} multiline/>
-                      </div>
+                    <EditorCard title="Section heading">
+                      <Field label="Title" value={formState.sectionTitle} onChange={(value) => setValue("sectionTitle", value)}/>
                     </EditorCard>
 
                     <EditorCard title="Projects" description="Pick a project to edit, or add a new one." action={<button type="button" onClick={() => void handleAddProject()} className="edit-button">
@@ -1413,7 +1371,7 @@ export function EditForms() {
                         {data.projects.length ? (data.projects.map((project) => {
                     const active = editor.itemId === project.id;
                     return (<button key={project.id} type="button" onClick={() => go("projects", project.id)} className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${active
-                            ? "border-transparent bg-[color:var(--accent-solid)] text-[color:var(--on-accent)]"
+                            ? "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-[color:var(--text)]"
                             : "border-[color:var(--line)] text-[color:var(--text-soft)] hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"}`}>
                               <span className="font-mono">{project.icon.trim() || "PR"}</span>
                               <span>{project.name.trim() || "Untitled project"}</span>
@@ -1441,7 +1399,7 @@ export function EditForms() {
                           </div>
                         </EditorCard>
 
-                        <EditorCard title="Media" description="Screenshots and videos shown in the project gallery. Uploads keep their original colors." action={<label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent-solid)] px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:brightness-110">
+                        <EditorCard title="Media" description="Screenshots and videos shown in the project gallery. Uploads keep their original colors." action={<label className="btn-primary cursor-pointer px-4 py-2 text-sm">
                               <span>{isProcessingProjectImages ? "Uploading..." : "Upload media"}</span>
                               <input type="file" accept="image/*,video/*" multiple onChange={(event) => void handleProjectImageUpload(event)} className="sr-only" disabled={isProcessingProjectImages}/>
                             </label>}>
@@ -1528,12 +1486,8 @@ export function EditForms() {
                   </>) : null}
 
                 {editor.section === "work" ? (<>
-                    <EditorCard title="Section copy" description="Heading shown above the GitHub activity card.">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label="Eyebrow" value={formState.eyebrow} onChange={(value) => setValue("eyebrow", value)}/>
-                        <Field label="Title" value={formState.title} onChange={(value) => setValue("title", value)}/>
-                        <Field className="sm:col-span-2" label="Description" value={formState.description} onChange={(value) => setValue("description", value)} multiline/>
-                      </div>
+                    <EditorCard title="Section heading">
+                      <Field label="Title" value={formState.title} onChange={(value) => setValue("title", value)}/>
                     </EditorCard>
 
                     <EditorCard title="GitHub activity" description="Private credentials used for live contribution stats.">
@@ -1570,7 +1524,7 @@ export function EditForms() {
                       <Field label="Resume title" value={formState.title} onChange={(value) => setValue("title", value)} placeholder="Resume"/>
                     </EditorCard>
 
-                    <EditorCard title="PDF file" description="Shown in the View resume button." action={<label className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[color:var(--accent-solid)] px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:brightness-110">
+                    <EditorCard title="PDF file" description="Shown in the View resume button." action={<label className="btn-primary cursor-pointer px-4 py-2 text-sm">
                           <span>{isUploadingResume ? "Uploading..." : "Upload PDF"}</span>
                           <input type="file" accept="application/pdf,.pdf" onChange={(event) => void handleResumeUpload(event)} className="sr-only" disabled={isUploadingResume}/>
                         </label>}>
@@ -1665,10 +1619,10 @@ export function EditForms() {
                   </span>)}
               </div>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={closeEditor} className="rounded-full border border-[color:var(--line)] px-4 py-2.5 text-sm text-[color:var(--text-soft)] transition hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]">
+                <button type="button" onClick={closeEditor} className="btn-quiet px-4 py-2.5 text-sm">
                   Cancel
                 </button>
-                <button type="button" onClick={() => void handleSave()} disabled={saveDisabled} className="rounded-full bg-[color:var(--accent-solid)] px-5 py-2.5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-70">
+                <button type="button" onClick={() => void handleSave()} disabled={saveDisabled} className="btn-primary px-5 py-2.5 text-sm">
                   {saveLabel}
                 </button>
               </div>

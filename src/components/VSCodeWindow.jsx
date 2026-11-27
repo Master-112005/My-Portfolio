@@ -123,7 +123,7 @@ export default function VSCodeWindow({ mode, onClose, onMaximize, onMinimize, on
                 {repoHref ? (<a href={repoHref} target="_blank" rel="noreferrer" className="rounded-full border border-neutral-700/70 px-4 py-2 text-sm font-semibold text-neutral-200 transition hover:bg-neutral-800">
                     Open repo
                   </a>) : null}
-                {liveHref ? (<a href={liveHref} target="_blank" rel="noreferrer" className="rounded-full px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)]" style={{ backgroundColor: "var(--accent-solid)" }}>
+                {liveHref ? (<a href={liveHref} target="_blank" rel="noreferrer" className="btn-on-dark px-4 py-2 text-sm">
                     Open live site
                   </a>) : null}
                 <div className="flex items-center gap-2">

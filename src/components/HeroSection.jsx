@@ -43,9 +43,7 @@ export default function HeroSection() {
             </motion.div>
 
             {heroActions.length ? (<motion.div variants={fadeUpVariant} className="flex flex-wrap gap-3">
-                {heroActions.map((action) => (<Link key={`${action.label}-${action.href}`} href={action.href} className={`inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition duration-200 ${action.variant === "primary"
-                    ? "bg-[color:var(--accent-solid)] text-[color:var(--on-accent)] hover:brightness-110"
-                    : "border border-[color:var(--line)] bg-[color:var(--surface)]/70 text-[color:var(--text)] hover:-translate-y-0.5"}`}>
+                {heroActions.map((action) => (<Link key={`${action.label}-${action.href}`} href={action.href} className={`${action.variant === "primary" ? "btn-primary" : "btn-secondary"} px-5 py-3 text-sm`}>
                   {action.label}
                 </Link>))}
               </motion.div>) : null}

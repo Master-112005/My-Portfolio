@@ -123,7 +123,7 @@ export default function ContactForm() {
               <div className={`text-sm ${formError ? "font-medium text-[color:var(--text)]" : "text-[color:var(--text-soft)]"}`}>
                 {formError ?? (isSuccess ? "Message sent successfully." : data.contact.availability)}
               </div>
-              <motion.button whileTap={{ scale: 0.98 }} type="submit" disabled={isSending} className="inline-flex items-center justify-center rounded-full bg-[color:var(--accent-solid)] px-5 py-3 text-sm font-semibold text-[color:var(--on-accent)] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-75">
+              <motion.button whileTap={{ scale: 0.98 }} type="submit" disabled={isSending} className="btn-primary px-5 py-3 text-sm">
                 {isSending ? "Sending..." : isSuccess ? "Sent" : "Send message"}
               </motion.button>
             </div>

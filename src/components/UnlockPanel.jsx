@@ -129,7 +129,7 @@ export function UnlockPanel() {
                   {error ? <p className="mt-3 text-sm font-medium text-[color:var(--text)]">{error}</p> : null}
                 </div>
 
-                <button type="button" onClick={() => void handleUnlock()} disabled={isVerifying || isLocked} className="inline-flex w-full items-center justify-center rounded-full bg-[color:var(--accent-solid)] px-5 py-3 text-sm font-semibold text-[color:var(--on-accent)] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-70">
+                <button type="button" onClick={() => void handleUnlock()} disabled={isVerifying || isLocked} className="btn-primary w-full px-5 py-3 text-sm">
                   {isLocked ? `Locked ${lockoutLabel}` : isVerifying ? "Verifying..." : "Unlock edit mode"}
                 </button>
               </div>

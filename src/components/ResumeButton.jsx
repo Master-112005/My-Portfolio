@@ -23,7 +23,7 @@ export default function ResumeButton() {
                 repeat: Infinity,
                 ease: "easeOut",
             },
-        }} className="inline-flex cursor-pointer items-center justify-center rounded-full border border-neutral-300/70 bg-neutral-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-950/25 transition-colors hover:bg-neutral-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 active:bg-neutral-700 sm:px-5">
+        }} className="btn-primary px-4 py-3 text-sm sm:px-5">
           View resume
         </motion.button>
       </motion.div>
@@ -43,10 +43,10 @@ export default function ResumeButton() {
                       <span aria-hidden="true">+</span>
                       <span>Edit resume</span>
                     </button>) : null}
-                  {hasResume ? (<a href={resume.fileHref} download={resume.fileName || "resume.pdf"} className="rounded-full bg-[color:var(--accent-solid)] px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:brightness-110">
+                  {hasResume ? (<a href={resume.fileHref} download={resume.fileName || "resume.pdf"} className="btn-primary px-4 py-2 text-sm">
                       Download
                     </a>) : null}
-                  <button type="button" onClick={() => setIsOpen(false)} className="rounded-full border border-[color:var(--line)] px-4 py-2 text-sm text-[color:var(--text-soft)] transition hover:text-[color:var(--text)]">
+                  <button type="button" onClick={() => setIsOpen(false)} className="btn-quiet px-4 py-2 text-sm">
                     Close
                   </button>
                 </div>

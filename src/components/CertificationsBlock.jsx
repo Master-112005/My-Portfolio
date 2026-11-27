@@ -16,25 +16,16 @@ export default function CertificationsBlock({ items, section }) {
         .filter((item) => item.title || item.issuer || item.credentialId)
         .sort((left, right) => left.order - right.order);
     const hasVisibleItems = visibleItems.length > 0;
-    const eyebrow = section.eyebrow.trim() || "Certifications block";
     const title = section.title.trim() || "Certifications";
-    const description = section.description.trim() ||
-        "Selected certifications presented with the same visual weight as each skill cluster card.";
     return (<section id="certifications" className="section-shell">
       <div className="panel-surface-strong relative overflow-hidden rounded-[2.25rem] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
         <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.36),transparent)]"/>
         <div className="absolute left-0 top-10 h-44 w-44 rounded-full bg-neutral-400/8 blur-3xl"/>
         <div className="absolute bottom-0 right-0 h-52 w-52 rounded-full bg-neutral-500/8 blur-3xl"/>
 
-        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="eyebrow">{eyebrow}</span>
-              <EditButton section="certifications" label="Edit certifications"/>
-            </div>
-            <h2 className="text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text)] sm:text-4xl">{title}</h2>
-          </div>
-          <p className="max-w-2xl text-sm leading-7 text-[color:var(--text-soft)] sm:text-base">{description}</p>
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <h2 className="text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text)] sm:text-4xl">{title}</h2>
+          <EditButton section="certifications" label="Edit certifications"/>
         </div>
 
         <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -83,7 +74,7 @@ export default function CertificationsBlock({ items, section }) {
                     </div>
 
                     <div className="mt-auto">
-                      {item.href ? (<a href={item.href} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)]" style={{ backgroundColor: "var(--accent-solid)" }}>
+                      {item.href ? (<a href={item.href} target="_blank" rel="noreferrer" className="btn-primary px-4 py-2 text-sm">
                           View certificate
                         </a>) : (<p className="text-sm leading-7 text-[color:var(--text-soft)]">
                           Add a verification link in edit mode if you want this card to open the certificate.

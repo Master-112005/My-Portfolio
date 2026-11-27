@@ -141,9 +141,7 @@ const profile = {
         backFooter: "Release to let the badge settle back into place.",
     },
     skillsSection: {
-        eyebrow: "Skills block",
         title: "Skills",
-        description: "A quick view of the languages, tools, frameworks, and working strengths behind the portfolio.",
     },
     skillGroups: [
         {
@@ -212,9 +210,7 @@ const profile = {
         },
     ],
     certificationsSection: {
-        eyebrow: "Certifications block",
         title: "Certifications",
-        description: "Selected certifications presented with the same visual weight as each skill cluster card.",
     },
     certifications: [
         {
@@ -345,12 +341,9 @@ const education = [
 ];
 const timeline = {
     title: "Education milestones arranged as a guided journey.",
-    description: "Open any milestone to read the details from each stage of the academic path.",
 };
 const projectsSection = {
-    eyebrow: "Project desktop",
     title: "Project work presented as a friendlier explorer-style workspace.",
-    description: "Open any project to move through overview, screenshots, tech stack, links, README notes, and custom sections from one desktop window.",
 };
 const projects = [
     {
@@ -551,9 +544,7 @@ The design favors calm density: enough information to act, without overwhelming 
     },
 ];
 const workSection = {
-    eyebrow: "My work",
     title: "Code activity.",
-    description: "Live GitHub contribution activity fetched through a private server route.",
 };
 const contact = {
     headline: "Let us build something with texture, motion, and strong engineering underneath.",
@@ -637,21 +628,18 @@ export function mergePortfolioData(partial) {
                 frontRoleLines: partial.profile?.idCard?.frontRoleLines ?? base.profile.idCard.frontRoleLines,
             },
             skillsSection: {
-                ...base.profile.skillsSection,
-                ...partial.profile?.skillsSection,
+                title: partial.profile?.skillsSection?.title ?? base.profile.skillsSection.title,
             },
             skillGroups: normalizeSkillGroups(partial.profile?.skillGroups, base.profile.skillGroups),
             certificationsSection: {
-                ...base.profile.certificationsSection,
-                ...partial.profile?.certificationsSection,
+                title: partial.profile?.certificationsSection?.title ?? base.profile.certificationsSection.title,
             },
             certifications: normalizeCertifications(partial.profile?.certifications, base.profile.certifications),
             heroActions: partial.profile?.heroActions ?? base.profile.heroActions,
             socialLinks: partial.profile?.socialLinks ?? base.profile.socialLinks,
         },
         timeline: {
-            ...base.timeline,
-            ...partial.timeline,
+            title: partial.timeline?.title ?? base.timeline.title,
         },
         education: (partial.education ?? base.education).map((item, index) => ({
             ...base.education[index % base.education.length],
@@ -659,8 +647,7 @@ export function mergePortfolioData(partial) {
             order: item.order ?? index,
         })),
         projectsSection: {
-            ...base.projectsSection,
-            ...partial.projectsSection,
+            title: partial.projectsSection?.title ?? base.projectsSection.title,
         },
         projects: (partial.projects ?? base.projects).map((item, index) => {
             const baseProject = base.projects[index % base.projects.length];
@@ -674,8 +661,7 @@ export function mergePortfolioData(partial) {
             };
         }),
         workSection: {
-            ...base.workSection,
-            ...partial.workSection,
+            title: partial.workSection?.title ?? base.workSection.title,
         },
         contact: {
             ...base.contact,
