@@ -62,14 +62,13 @@ export default function ContactForm() {
       <div className="panel-surface-strong rounded-[2.25rem] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="eyebrow">Creative contact</span>
-              <EditButton section="contact" label="Edit contact"/>
-              {isEditMode ? (<button type="button" onClick={() => openEditor("mailer")} className="edit-button">
+            {isEditMode ? (<div className="flex flex-wrap items-center gap-3">
+                <EditButton section="contact" label="Edit contact"/>
+                <button type="button" onClick={() => openEditor("mailer")} className="edit-button">
                   <span aria-hidden="true">+</span>
                   <span>Edit mailer</span>
-                </button>) : null}
-            </div>
+                </button>
+              </div>) : null}
             {data.contact.headline.trim() ? (<h2 className="section-title max-w-xl font-semibold text-[color:var(--text)]">
                 {data.contact.headline}
               </h2>) : null}

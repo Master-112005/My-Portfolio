@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { EditButton } from "@/components/EditMode";
+import { EditButton, useEditMode } from "@/components/EditMode";
 import { useSiteData } from "@/lib/site-context";
 export default function Footer() {
     const { data, getViewCount, viewerEmails } = useSiteData();
+    const { isEditMode } = useEditMode();
     const { footer } = data;
     const links = footer.links.filter((link) => link.label.trim() && link.href.trim());
     const note = footer.note.trim();
@@ -18,10 +19,9 @@ export default function Footer() {
       <div className="panel-surface-strong rounded-[2rem] px-5 py-8 sm:px-8 sm:py-10 relative">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="eyebrow">Footer</span>
-              <EditButton section="footer" label="Edit footer"/>
-            </div>
+            {isEditMode ? (<div className="flex flex-wrap items-center gap-3">
+                <EditButton section="footer" label="Edit footer"/>
+              </div>) : null}
             {quote ? (<blockquote className="max-w-2xl text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text)]">
                 "{quote}"
               </blockquote>) : null}

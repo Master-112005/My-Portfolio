@@ -1,6 +1,6 @@
 "use client";
-import { animate, useMotionValue, useMotionValueEvent } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMotionValue, useMotionValueEvent } from "framer-motion";
+import { useMemo, useState } from "react";
 import { EditButton, useEditMode } from "@/components/EditMode";
 import EducationBox from "@/components/EducationBox";
 import { useSiteData } from "@/lib/site-context";
@@ -11,23 +11,13 @@ export default function TimelineSection() {
     const { education, timeline } = data;
     const { ref, scrollYProgress } = useElementScrollProgress();
     const pathProgress = useMotionValue(0);
-    const animationControlsRef = useRef(null);
     const [progress, setProgress] = useState(0);
-    const [pinnedStageId, setPinnedStageId] = useState(null);
     useMotionValueEvent(pathProgress, "change", (latest) => {
         setProgress(latest);
     });
     useMotionValueEvent(scrollYProgress, "change", (latest) => {
-        if (pinnedStageId) {
-            return;
-        }
         pathProgress.set(latest);
     });
-    useEffect(() => {
-        return () => {
-            animationControlsRef.current?.stop();
-        };
-    }, []);
     const scrollStageIndex = useMemo(() => {
         if (!education.length) {
             return -1;
@@ -35,11 +25,9 @@ export default function TimelineSection() {
         return Math.min(education.length - 1, Math.floor(progress * education.length));
     }, [education.length, progress]);
     const scrollStageId = scrollStageIndex >= 0 ? education[scrollStageIndex]?.id ?? null : null;
-    const activeStageId = pinnedStageId;
+    const activeStageId = scrollStageId;
     const timelineRowHeight = 17.5;
     const timelineHeightRem = Math.max(education.length * timelineRowHeight, 32);
-    const progressPercent = Math.round(progress * 100);
-    const activeStage = scrollStageId ? education.find((item) => item.id === scrollStageId) ?? null : null;
     const snakePath = useMemo(() => {
         if (!education.length) {
             return "";
@@ -62,39 +50,19 @@ export default function TimelineSection() {
         const item = await appendEducationItem();
         openEditor("education", item.id);
     };
-    const handleSelectStage = (stageId) => {
-        if (pinnedStageId === stageId) {
-            animationControlsRef.current?.stop();
-            setPinnedStageId(null);
-            pathProgress.set(scrollYProgress.get());
-            return;
-        }
-        animationControlsRef.current?.stop();
-        setPinnedStageId(stageId);
-        const index = education.findIndex((item) => item.id === stageId);
-        const nextProgress = education.length > 1 ? index / (education.length - 1) : 0;
-        animationControlsRef.current = animate(pathProgress, nextProgress, {
-            type: "spring",
-            stiffness: 92,
-            damping: 22,
-            mass: 0.95,
-        });
-    };
     return (<section id="timeline" ref={ref} className="relative py-16 sm:py-20">
       <div className="space-y-8 px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24">
-        <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {timeline.title.trim() ? (<h2 className="section-title max-w-4xl font-semibold text-[color:var(--text)]">
+              {timeline.title}
+            </h2>) : null}
           <div className="flex flex-wrap items-center gap-3">
-            <span className="eyebrow">Education journey</span>
             <EditButton section="education" itemId={education[0]?.id} label="Edit education"/>
             {isEditMode ? (<button type="button" onClick={() => void handleAddStage()} className="edit-button">
                 <span aria-hidden="true">+</span>
                 <span>Add stage</span>
               </button>) : null}
           </div>
-          {timeline.title.trim() ? (<h2 className="section-title max-w-4xl font-semibold text-[color:var(--text)]">
-              {timeline.title}
-            </h2>) : null}
-          
         </div>
 
         <div className="relative" style={{ minHeight: `${timelineHeightRem}rem` }}>
@@ -123,7 +91,7 @@ export default function TimelineSection() {
 
           <div className="relative grid gap-y-14 lg:grid-cols-[minmax(18rem,1fr)_minmax(5rem,9rem)_minmax(18rem,1fr)] lg:gap-x-12 xl:grid-cols-[minmax(20rem,1fr)_minmax(6rem,10rem)_minmax(20rem,1fr)]" style={{ gridTemplateRows: `repeat(${Math.max(education.length, 1)}, minmax(15rem, auto))` }}>
             {education.map((item, index) => (<div key={item.id} className={index % 2 === 0 ? "lg:col-start-1" : "lg:col-start-3"} style={{ gridRow: `${index + 1}` }}>
-                <EducationBox index={index} item={item} side={index % 2 === 0 ? "left" : "right"} isActive={activeStageId === item.id} isEditMode={isEditMode} onSelect={() => handleSelectStage(item.id)}/>
+                <EducationBox index={index} item={item} side={index % 2 === 0 ? "left" : "right"} isEditMode={isEditMode}/>
               </div>))}
           </div>
         </div>

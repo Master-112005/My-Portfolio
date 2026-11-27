@@ -46,7 +46,7 @@ export default function PortfolioExperience() {
         <TimelineSection />
         <Desktop />
         <MyWorkBlock />
-        <SkillsBlock section={data.profile.skillsSection} groups={data.profile.skillGroups}/>
+        <SkillsBlock section={data.profile.skillsSection} skills={data.profile.skills}/>
         <CertificationsBlock section={data.profile.certificationsSection} items={data.profile.certifications}/>
         <ContactForm />
         <Footer />

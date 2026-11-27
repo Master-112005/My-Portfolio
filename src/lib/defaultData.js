@@ -15,7 +15,6 @@ export function monochromePortfolioData(data) {
         profile: data.profile
             ? {
                 ...data.profile,
-                skillGroups: monochromeAccentList(data.profile.skillGroups),
                 certifications: monochromeAccentList(data.profile.certifications),
             }
             : data.profile,
@@ -53,23 +52,11 @@ function normalizeSkillItems(items) {
     })
         .filter((item) => Boolean(item));
 }
-function normalizeSkillGroups(groups, fallback) {
+function flattenSkillGroups(groups) {
     if (!Array.isArray(groups)) {
-        return fallback;
+        return null;
     }
-    return groups
-        .map((group) => {
-        if (!group || typeof group !== "object") {
-            return null;
-        }
-        return {
-            title: "title" in group && typeof group.title === "string" ? group.title : "",
-            accent: "accent" in group && typeof group.accent === "string" ? group.accent : "",
-            marker: "marker" in group && typeof group.marker === "string" ? group.marker : "",
-            items: normalizeSkillItems("items" in group ? group.items : []),
-        };
-    })
-        .filter((group) => Boolean(group));
+    return groups.flatMap((group) => (group && Array.isArray(group.items) ? group.items : []));
 }
 function normalizeCertifications(items, fallback) {
     if (!Array.isArray(items)) {
@@ -143,71 +130,36 @@ const profile = {
     skillsSection: {
         title: "Skills",
     },
-    skillGroups: [
-        {
-            title: "Languages",
-            accent: "#7a7a7a",
-            marker: "LG",
-            items: [
-                { name: "TypeScript", level: "advanced" },
-                { name: "JavaScript", level: "advanced" },
-                { name: "Python", level: "good" },
-                { name: "Java", level: "good" },
-                { name: "SQL", level: "good" },
-                { name: "HTML/CSS", level: "advanced" },
-                { name: "C++", level: "better" },
-            ],
-        },
-        {
-            title: "Technologies",
-            accent: "#7a7a7a",
-            marker: "TK",
-            items: [
-                { name: "Firebase", level: "advanced" },
-                { name: "Azure DevOps", level: "better" },
-                { name: "Docker", level: "good" },
-                { name: "Git", level: "advanced" },
-                { name: "TailwindCSS", level: "advanced" },
-                { name: "Framer Motion", level: "good" },
-                { name: "Figma", level: "good" },
-            ],
-        },
-        {
-            title: "Frameworks",
-            accent: "#7a7a7a",
-            marker: "FW",
-            items: [
-                { name: "Next.js", level: "advanced" },
-                { name: "React", level: "advanced" },
-                { name: "Spring Boot", level: "good" },
-                { name: "Microservices", level: "better" },
-                { name: "Django", level: "better" },
-                { name: "Flutter", level: "linear" },
-            ],
-        },
-        {
-            title: "Core",
-            accent: "#7a7a7a",
-            marker: "CR",
-            items: [
-                { name: "Web Development", level: "advanced" },
-                { name: "Cloud Infrastructure", level: "good" },
-                { name: "DevOps", level: "better" },
-                { name: "Communication", level: "advanced" },
-                { name: "Analytical Thinking", level: "advanced" },
-            ],
-        },
-        {
-            title: "Misc",
-            accent: "#7a7a7a",
-            marker: "ET",
-            items: [
-                { name: "Digital Content Creation", level: "good" },
-                { name: "Canva", level: "good" },
-                { name: "Storytelling", level: "advanced" },
-                { name: "Rapid Prototyping", level: "advanced" },
-            ],
-        },
+    skills: [
+        { name: "TypeScript", level: "advanced" },
+        { name: "JavaScript", level: "advanced" },
+        { name: "Python", level: "good" },
+        { name: "Java", level: "good" },
+        { name: "SQL", level: "good" },
+        { name: "HTML/CSS", level: "advanced" },
+        { name: "C++", level: "better" },
+        { name: "Firebase", level: "advanced" },
+        { name: "Azure DevOps", level: "better" },
+        { name: "Docker", level: "good" },
+        { name: "Git", level: "advanced" },
+        { name: "TailwindCSS", level: "advanced" },
+        { name: "Framer Motion", level: "good" },
+        { name: "Figma", level: "good" },
+        { name: "Next.js", level: "advanced" },
+        { name: "React", level: "advanced" },
+        { name: "Spring Boot", level: "good" },
+        { name: "Microservices", level: "better" },
+        { name: "Django", level: "better" },
+        { name: "Flutter", level: "linear" },
+        { name: "Web Development", level: "advanced" },
+        { name: "Cloud Infrastructure", level: "good" },
+        { name: "DevOps", level: "better" },
+        { name: "Communication", level: "advanced" },
+        { name: "Analytical Thinking", level: "advanced" },
+        { name: "Digital Content Creation", level: "good" },
+        { name: "Canva", level: "good" },
+        { name: "Storytelling", level: "advanced" },
+        { name: "Rapid Prototyping", level: "advanced" },
     ],
     certificationsSection: {
         title: "Certifications",
@@ -249,8 +201,8 @@ const profile = {
     ],
     heroActions: [
         {
-            label: "Walk the timeline",
-            href: "#timeline",
+            label: "Education",
+            href: "#education",
             variant: "primary",
         },
         {
@@ -630,7 +582,11 @@ export function mergePortfolioData(partial) {
             skillsSection: {
                 title: partial.profile?.skillsSection?.title ?? base.profile.skillsSection.title,
             },
-            skillGroups: normalizeSkillGroups(partial.profile?.skillGroups, base.profile.skillGroups),
+            skills: partial.profile?.skills !== undefined || partial.profile?.skillGroups !== undefined
+                ? normalizeSkillItems(Array.isArray(partial.profile?.skills)
+                    ? partial.profile.skills
+                    : flattenSkillGroups(partial.profile?.skillGroups) ?? [])
+                : base.profile.skills,
             certificationsSection: {
                 title: partial.profile?.certificationsSection?.title ?? base.profile.certificationsSection.title,
             },

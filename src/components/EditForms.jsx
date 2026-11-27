@@ -92,46 +92,22 @@ function createSkillItemDraft(item, index = 0) {
         level: normalizeSkillLevel(item?.level ?? DEFAULT_SKILL_LEVEL),
     };
 }
-function createSkillGroupDraft(group, index = 0) {
-    const title = group?.title ?? "New cluster";
-    return {
-        id: randomId(`${title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "skill-cluster"}-${index}`),
-        title,
-        accent: group?.accent ?? "#7a7a7a",
-        marker: ((group?.marker ?? title.slice(0, 2)) || "SC").slice(0, 2).toUpperCase(),
-        items: group?.items.length ? group.items.map((item, itemIndex) => createSkillItemDraft(item, itemIndex)) : [],
-    };
+function buildSkillDrafts(skills) {
+    return skills.map((item, index) => createSkillItemDraft(item, index));
 }
-function buildSkillGroupDrafts(groups) {
-    return groups.length ? groups.map((group, index) => createSkillGroupDraft(group, index)) : [];
-}
-function normalizeSkillGroupDrafts(groups) {
-    return groups
-        .map((group) => {
-        const title = group.title.trim();
-        const items = group.items
-            .map((item) => {
-            const name = item.name.trim();
-            if (!name) {
-                return null;
-            }
-            return {
-                name,
-                level: normalizeSkillLevel(item.level),
-            };
-        })
-            .filter((item) => Boolean(item));
-        if (!title && !items.length) {
+function normalizeSkillDrafts(skills) {
+    return skills
+        .map((item) => {
+        const name = item.name.trim();
+        if (!name) {
             return null;
         }
         return {
-            title,
-            accent: (group.accent ?? "#7a7a7a").trim() || "#7a7a7a",
-            marker: group.marker.trim().slice(0, 2).toUpperCase(),
-            items,
+            name,
+            level: normalizeSkillLevel(item.level),
         };
     })
-        .filter((group) => Boolean(group));
+        .filter((item) => Boolean(item));
 }
 function createCertificationDraft(item, index = 0) {
     const title = item?.title ?? `Certification ${index + 1}`;
@@ -498,7 +474,7 @@ export function EditForms() {
     const { closeEditor, editor, openEditor } = useEditMode();
     const { appendEducationItem, appendProject, data, isSaving, deleteEducationItem, deleteProject, updateContact, updateResume, updateEducationItem, updateFooter, updateProfile, updateProject, updateProjectsSection, updateTimeline, updateWorkSection, } = useSiteData();
     const [formState, setFormState] = useState({});
-    const [skillGroupsDraft, setSkillGroupsDraft] = useState([]);
+    const [skillDrafts, setSkillDrafts] = useState([]);
     const [certificationDrafts, setCertificationDrafts] = useState([]);
     const [projectImagesDraft, setProjectImagesDraft] = useState([]);
     const [projectCustomSectionsDraft, setProjectCustomSectionsDraft] = useState([]);
@@ -519,7 +495,7 @@ export function EditForms() {
     useEffect(() => {
         if (!editor) {
             setFormState({});
-            setSkillGroupsDraft([]);
+            setSkillDrafts([]);
             setCertificationDrafts([]);
             setProjectImagesDraft([]);
             setProjectCustomSectionsDraft([]);
@@ -540,7 +516,7 @@ export function EditForms() {
             return;
         }
         setFormState(buildFormState(editor, data));
-        setSkillGroupsDraft(editor.section === "skills" ? buildSkillGroupDrafts(data.profile.skillGroups) : []);
+        setSkillDrafts(editor.section === "skills" ? buildSkillDrafts(data.profile.skills) : []);
         setCertificationDrafts(editor.section === "certifications" ? buildCertificationDrafts(data.profile.certifications) : []);
         setProjectImagesDraft(editor.section === "projects"
             ? buildProjectImageDrafts(data.projects.find((entry) => entry.id === editor.itemId)?.images ?? [])
@@ -683,48 +659,19 @@ export function EditForms() {
             [key]: (current[key] ?? []).filter((item) => item.id !== id),
         }));
     };
-    const updateSkillGroupDraft = (id, key, value) => {
-        setSkillGroupsDraft((current) => current.map((group) => group.id === id
+    const addSkill = () => {
+        setSkillDrafts((current) => [...current, createSkillItemDraft(undefined, current.length)]);
+    };
+    const updateSkillDraft = (id, key, value) => {
+        setSkillDrafts((current) => current.map((item) => item.id === id
             ? {
-                ...group,
-                [key]: value,
+                ...item,
+                [key]: key === "level" ? normalizeSkillLevel(value) : value,
             }
-            : group));
+            : item));
     };
-    const addSkillGroup = () => {
-        setSkillGroupsDraft((current) => [...current, createSkillGroupDraft(undefined, current.length)]);
-    };
-    const deleteSkillGroup = (id) => {
-        setSkillGroupsDraft((current) => current.filter((group) => group.id !== id));
-    };
-    const addSkillItem = (groupId) => {
-        setSkillGroupsDraft((current) => current.map((group) => group.id === groupId
-            ? {
-                ...group,
-                items: [...group.items, createSkillItemDraft(undefined, group.items.length)],
-            }
-            : group));
-    };
-    const updateSkillItem = (groupId, itemId, key, value) => {
-        setSkillGroupsDraft((current) => current.map((group) => group.id === groupId
-            ? {
-                ...group,
-                items: group.items.map((item) => item.id === itemId
-                    ? {
-                        ...item,
-                        [key]: key === "level" ? normalizeSkillLevel(value) : value,
-                    }
-                    : item),
-            }
-            : group));
-    };
-    const deleteSkillItem = (groupId, itemId) => {
-        setSkillGroupsDraft((current) => current.map((group) => group.id === groupId
-            ? {
-                ...group,
-                items: group.items.filter((item) => item.id !== itemId),
-            }
-            : group));
+    const deleteSkill = (id) => {
+        setSkillDrafts((current) => current.filter((item) => item.id !== id));
     };
     const updateCertificationDraft = (id, key, value) => {
         setCertificationDrafts((current) => current.map((item) => item.id === id
@@ -907,7 +854,7 @@ export function EditForms() {
                     skillsSection: {
                         title: formState.title.trim(),
                     },
-                    skillGroups: normalizeSkillGroupDrafts(skillGroupsDraft),
+                    skills: normalizeSkillDrafts(skillDrafts),
                 });
                 break;
             case "certifications":
@@ -1231,59 +1178,21 @@ export function EditForms() {
                       <Field label="Title" value={formState.title} onChange={(value) => setValue("title", value)}/>
                     </EditorCard>
 
-                    <EditorCard title="Skill clusters" description="Each cluster stores its own skills and proficiency levels." action={<button type="button" onClick={addSkillGroup} className="edit-button">
+                    <EditorCard title="Skills" description="Add each skill and how well it is known." action={<button type="button" onClick={addSkill} className="edit-button">
                           <span aria-hidden="true">+</span>
-                          <span>Add cluster</span>
+                          <span>Add skill</span>
                         </button>}>
-                      <div className="space-y-4">
-                        {skillGroupsDraft.length ? (skillGroupsDraft.map((group, index) => (<div key={group.id} className="rounded-[1.2rem] border border-[color:var(--line)] bg-[color:var(--surface)]/40 p-4">
-                              <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-[0.85rem] border border-[color:var(--line)] bg-[color:var(--accent-soft)] font-mono text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text)]">
-                                    {group.marker || "SC"}
-                                  </div>
-                                  <div>
-                                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-soft)]">
-                                      Cluster {String(index + 1).padStart(2, "0")}
-                                    </p>
-                                    <p className="mt-0.5 text-sm font-medium text-[color:var(--text)]">
-                                      {group.title.trim() || "Untitled cluster"}
-                                    </p>
-                                  </div>
-                                </div>
-                                <RemoveButton onClick={() => deleteSkillGroup(group.id)}>Delete cluster</RemoveButton>
+                      <div className="space-y-3">
+                        {skillDrafts.length ? (skillDrafts.map((item, index) => (<div key={item.id} className="grid gap-3 rounded-[0.9rem] border border-[color:var(--line)] bg-[color:var(--surface)]/40 p-3 sm:grid-cols-[1fr_11rem_auto]">
+                              <Field label={`Skill ${String(index + 1).padStart(2, "0")}`} value={item.name} onChange={(value) => updateSkillDraft(item.id, "name", value)} placeholder="TypeScript"/>
+                              <SelectField label="Level" value={item.level} onChange={(value) => updateSkillDraft(item.id, "level", value)} options={skillLevelOptions.map((level) => ({
+                            value: level,
+                            label: level[0].toUpperCase() + level.slice(1),
+                        }))}/>
+                              <div className="self-end">
+                                <RemoveButton onClick={() => deleteSkill(item.id)}/>
                               </div>
-
-                              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                                <Field label="Title" value={group.title} onChange={(value) => updateSkillGroupDraft(group.id, "title", value)}/>
-                                <Field label="Marker" hint="2 characters" value={group.marker} onChange={(value) => updateSkillGroupDraft(group.id, "marker", value.toUpperCase().slice(0, 2))} placeholder="LG"/>
-                              </div>
-
-                              <div className="mt-4 rounded-[1rem] border border-[color:var(--line)] p-3">
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-soft)]">
-                                    Skills & proficiency
-                                  </p>
-                                  <button type="button" onClick={() => addSkillItem(group.id)} className="edit-button">
-                                    <span aria-hidden="true">+</span>
-                                    <span>Add skill</span>
-                                  </button>
-                                </div>
-
-                                <div className="mt-3 space-y-3">
-                                  {group.items.length ? (group.items.map((item, itemIndex) => (<div key={item.id} className="grid gap-3 rounded-[0.9rem] border border-[color:var(--line)] bg-[color:var(--surface)]/40 p-3 sm:grid-cols-[1fr_11rem_auto]">
-                                        <Field label={`Skill ${String(itemIndex + 1).padStart(2, "0")}`} value={item.name} onChange={(value) => updateSkillItem(group.id, item.id, "name", value)} placeholder="TypeScript"/>
-                                        <SelectField label="Level" value={item.level} onChange={(value) => updateSkillItem(group.id, item.id, "level", value)} options={skillLevelOptions.map((level) => ({
-                                    value: level,
-                                    label: level[0].toUpperCase() + level.slice(1),
-                                }))}/>
-                                        <div className="self-end">
-                                          <RemoveButton onClick={() => deleteSkillItem(group.id, item.id)}/>
-                                        </div>
-                                      </div>))) : (<EmptyNote>No skills in this cluster yet.</EmptyNote>)}
-                                </div>
-                              </div>
-                            </div>))) : (<EmptyNote>No skill clusters yet. Add one to get started.</EmptyNote>)}
+                            </div>))) : (<EmptyNote>No skills yet. Add one to get started.</EmptyNote>)}
                       </div>
                     </EditorCard>
                   </>) : null}

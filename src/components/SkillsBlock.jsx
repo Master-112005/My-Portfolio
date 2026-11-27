@@ -7,19 +7,15 @@ const skillLevelCopy = {
     good: { label: "Good", width: "75%" },
     advanced: { label: "Advanced", width: "100%" },
 };
-export default function SkillsBlock({ groups, section }) {
-    const skills = groups.flatMap((group, groupIndex) => {
-        const accent = group.accent.trim() || "var(--accent)";
-        return group.items
-            .map((item, itemIndex) => ({
-            accent,
-            key: `${groupIndex}-${itemIndex}-${item.name.trim()}`,
-            level: item.level,
-            name: item.name.trim(),
-        }))
-            .filter((item) => item.name);
-    });
-    if (!skills.length) {
+export default function SkillsBlock({ section, skills }) {
+    const visibleSkills = skills
+        .map((item, index) => ({
+        key: `${index}-${item.name.trim()}`,
+        level: item.level,
+        name: item.name.trim(),
+    }))
+        .filter((item) => item.name);
+    if (!visibleSkills.length) {
         return null;
     }
     const title = section.title.trim() || "Skills";
@@ -35,7 +31,7 @@ export default function SkillsBlock({ groups, section }) {
         </div>
 
         <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {skills.map((skill, index) => {
+          {visibleSkills.map((skill, index) => {
             const level = skillLevelCopy[skill.level] ?? skillLevelCopy.good;
             return (<motion.div key={skill.key} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.4, delay: Math.min(index * 0.03, 0.3), ease: [0.22, 1, 0.36, 1] }} className="rounded-[1.05rem] border border-[color:var(--line)] bg-black/10 px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
@@ -47,7 +43,7 @@ export default function SkillsBlock({ groups, section }) {
                 <div className="mt-3 h-2 rounded-full bg-black/15">
                   <div className="h-full rounded-full" style={{
                     width: level.width,
-                    background: `linear-gradient(90deg, ${skill.accent}, color-mix(in srgb, ${skill.accent} 44%, white))`,
+                    background: `linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 44%, white))`,
                 }}/>
                 </div>
               </motion.div>);
